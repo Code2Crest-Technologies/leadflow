@@ -1,0 +1,162 @@
+/* src/styles/globals.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #004741;
+    --color-primary-hover: #063F3A;
+    --color-bg: #F0EDE4;
+    --color-card: #FFFFFF;
+    --color-text: #10201D;
+    --color-muted: #6B7A75;
+    --color-border: #DDD8CD;
+    --color-accent: #0F766E;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 15px;
+    overflow-x: hidden;
+  }
+
+  * {
+    min-width: 0;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply focus:outline-none focus:ring-2;
+    --tw-ring-color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+    border-color: var(--color-border);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex h-10 items-center justify-center gap-2 px-4 text-sm text-white rounded-xl transition font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-60;
+    background: var(--color-primary);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .btn-secondary {
+    @apply inline-flex h-10 items-center justify-center gap-2 px-4 text-sm rounded-xl transition font-semibold disabled:cursor-not-allowed disabled:opacity-60;
+    background: color-mix(in srgb, var(--color-card) 86%, var(--color-bg));
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .btn-secondary:hover {
+    background: color-mix(in srgb, var(--color-card) 70%, var(--color-bg));
+  }
+
+  .card {
+    @apply rounded-2xl p-5 shadow-sm;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+
+  .input-field {
+    @apply h-10 w-full px-4 text-sm rounded-xl focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    --tw-ring-color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  }
+
+  textarea.input-field {
+    @apply h-auto py-3;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .bg-slate-50,
+  .bg-slate-100,
+  .bg-gray-50,
+  .bg-green-50,
+  .bg-blue-50 {
+    background-color: var(--color-bg) !important;
+  }
+
+  .bg-white {
+    background-color: var(--color-card) !important;
+  }
+
+  .bg-slate-950,
+  .bg-emerald-500,
+  .bg-green-600,
+  .bg-blue-600 {
+    background-color: var(--color-primary) !important;
+  }
+
+  .hover\:bg-emerald-600:hover,
+  .hover\:bg-green-700:hover,
+  .hover\:bg-blue-700:hover {
+    background-color: var(--color-primary-hover) !important;
+  }
+
+  .text-slate-950,
+  .text-slate-900,
+  .text-slate-800,
+  .text-gray-900,
+  .text-gray-700 {
+    color: var(--color-text) !important;
+  }
+
+  .text-slate-700,
+  .text-slate-600,
+  .text-slate-500,
+  .text-slate-400,
+  .text-gray-600 {
+    color: var(--color-muted) !important;
+  }
+
+  .text-emerald-800,
+  .text-emerald-700,
+  .text-emerald-600,
+  .text-blue-700,
+  .text-blue-600,
+  .text-teal-700 {
+    color: var(--color-accent) !important;
+  }
+
+  .border-slate-100,
+  .border-slate-200,
+  .border-gray-300,
+  .border-emerald-200 {
+    border-color: var(--color-border) !important;
+  }
+
+  .bg-emerald-50,
+  .bg-emerald-100,
+  .bg-blue-50,
+  .bg-sky-50,
+  .bg-indigo-50,
+  .bg-purple-50 {
+    background-color: color-mix(in srgb, var(--color-accent) 10%, var(--color-card)) !important;
+  }
+
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-md {
+    --tw-shadow: 0 1px 2px 0 rgb(16 32 29 / 0.06) !important;
+    --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color) !important;
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+  }
+}

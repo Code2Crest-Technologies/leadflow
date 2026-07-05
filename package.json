@@ -1,0 +1,27 @@
+{
+  "name": "whatsapp-business-crm",
+  "version": "1.0.0",
+  "description": "WhatsApp Business CRM with Meta Ads integration",
+  "private": true,
+  "author": "code2crest Technologies",
+  "license": "MIT",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "backend:dev": "cd apps/backend && pnpm dev",
+    "backend:build": "cd apps/backend && pnpm build",
+    "frontend:dev": "cd apps/frontend && pnpm dev",
+    "frontend:build": "cd apps/frontend && pnpm build",
+    "db:migrate": "cd apps/backend && pnpm prisma:migrate",
+    "db:push": "cd apps/backend && pnpm prisma:push",
+    "db:seed": "cd apps/backend && pnpm prisma:seed"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.6.12"
+}

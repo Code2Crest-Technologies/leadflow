@@ -1,0 +1,45 @@
+# Frontend Dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build frontend
+WORKDIR /app/apps/frontend
+RUN pnpm build
+
+# Runtime stage - use node to serve Next.js
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN npm install -g pnpm
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built frontend
+COPY --from=builder /app/apps/frontend/.next ./apps/frontend/.next
+COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
+COPY --from=builder /app/apps/frontend/package.json ./apps/frontend/
+
+WORKDIR /app/apps/frontend
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:3000 || exit 1
+
+# Start Next.js server
+CMD ["pnpm", "start"]

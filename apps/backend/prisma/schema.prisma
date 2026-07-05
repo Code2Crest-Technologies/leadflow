@@ -1,0 +1,618 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  avatar            String?
+  companyId         String
+  role              UserRole           @default(AGENT)
+  status            UserStatus         @default(ACTIVE)
+  lastLoginAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  activityLogs      ActivityLog[]
+  assignedTasks     Task[]             @relation("TaskAssignee")
+  campaignTemplates CampaignTemplate[] @relation("CampaignCreator")
+  conversations     Conversation[]
+  deals             Deal[]             @relation("DealAssignee")
+  messages          Message[]          @relation("MessageSender")
+  messageTemplates  MessageTemplate[]  @relation("TemplateCreator")
+  notes             Note[]
+  teamMemberships   TeamMember[]
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([email])
+}
+
+model Company {
+  id                        String             @id @default(cuid())
+  name                      String
+  website                   String?
+  industry                  String?
+  logo                      String?
+  gstin                     String?
+  country                   String?
+  addressLine1              String?
+  addressLine2              String?
+  city                      String?
+  state                     String?
+  pincode                   String?
+  postalCode                String?
+  phoneCountryCode          String?
+  phone                     String?
+  email                     String?
+  logoUrl                   String?
+  signatureUrl              String?
+  signature                 String?
+  quotationTerms            String?
+  bankDetails               String?
+  whatsappPhoneNumber       String             @unique
+  whatsappBusinessAccountId String             @unique
+  whatsappAccessToken       String
+  metaAdsAccountId          String?
+  metaAdsAccessToken        String?
+  subscriptionTier          String             @default("starter")
+  maxUsers                  Int                @default(5)
+  maxContacts               Int                @default(1000)
+  messageTemplatesApproved  Int                @default(0)
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  analyticsLogs             ActivityLog[]
+  campaigns                 CampaignTemplate[]
+  contacts                  Contact[]
+  contactGroups             ContactGroup[]
+  conversations             Conversation[]
+  deals                     Deal[]
+  integrations              Integration[]
+  invoices                  Invoice[]
+  messages                  Message[]
+  quotations                Quotation[]
+  tasks                     Task[]
+  templates                 MessageTemplate[]
+  teamMembers               TeamMember[]
+  users                     User[]
+
+  @@index([name])
+  @@index([whatsappPhoneNumber])
+}
+
+model Contact {
+  id                String         @id @default(cuid())
+  phoneNumber       String
+  email             String?
+  firstName         String
+  lastName          String?
+  contactType       ContactType    @default(PERSON)
+  companyName       String?
+  contactPersonName String?
+  phoneCountryCode  String?
+  country           String?
+  addressLine1      String?
+  addressLine2      String?
+  city              String?
+  state             String?
+  pincode           String?
+  postalCode        String?
+  gstin             String?
+  taxId             String?
+  avatar            String?
+  companyId         String
+  groupId           String?
+  segment           ContactSegment @default(PROSPECT)
+  status            ContactStatus  @default(ACTIVE)
+  whatsappContactId String?
+  metaLeadId        String?
+  metaLeadData      Json?
+  customFields      Json?
+  lastContactedAt   DateTime?
+  lastMessageAt     DateTime?
+  totalSpent        Decimal        @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  activityLogs      ActivityLog[]
+  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  group             ContactGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  conversations     Conversation[]
+  deals             Deal[]
+  invoices          Invoice[]
+  messages          Message[]      @relation("MessageContact")
+  notes             Note[]
+  quotations        Quotation[]
+  tasks             Task[]
+
+  @@unique([companyId, phoneNumber])
+  @@index([companyId])
+  @@index([groupId])
+  @@index([segment])
+  @@index([status])
+  @@index([metaLeadId])
+}
+
+model ContactGroup {
+  id        String    @id @default(cuid())
+  name      String
+  companyId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contacts  Contact[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  contactId      String
+  companyId      String
+  assignedToId   String?
+  channel        ConversationChannel @default(MANUAL)
+  externalThreadId String?
+  status         ConversationStatus @default(OPEN)
+  subject        String?
+  messageCount   Int                @default(0)
+  lastMessageAt  DateTime?
+  whatsappConvId String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  activityLogs   ActivityLog[]
+  assignedTo     User?              @relation(fields: [assignedToId], references: [id])
+  company        Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact        Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages       Message[]
+  notes          Note[]
+
+  @@unique([companyId, contactId, channel])
+  @@index([companyId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  contactId         String
+  conversationId    String
+  senderId          String?
+  companyId         String
+  direction         MessageDirection @default(OUTBOUND)
+  channel           ConversationChannel @default(MANUAL)
+  externalMessageId String?
+  messageType       MessageType      @default(TEXT)
+  content           String
+  mediaUrl          String?
+  mediaType         String?
+  whatsappMessageId String?
+  whatsappStatusId  String?
+  status            MessageStatus    @default(PENDING)
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  failureReason     String?
+  templateId        String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  company           Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact           Contact          @relation("MessageContact", fields: [contactId], references: [id], onDelete: Cascade)
+  conversation      Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender            User?            @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([contactId])
+  @@index([conversationId])
+  @@index([companyId])
+  @@index([senderId])
+  @@index([whatsappMessageId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model MessageTemplate {
+  id                   String             @id @default(cuid())
+  companyId            String
+  createdById          String?
+  name                 String
+  category             TemplateCategory   @default(GENERAL)
+  content              String
+  variables            String[]
+  whatsappTemplateId   String?
+  whatsappTemplateCode String?
+  status               TemplateStatus     @default(PENDING)
+  approvalMessage      String?
+  language             String             @default("en")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  deletedAt            DateTime?
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy            User?              @relation("TemplateCreator", fields: [createdById], references: [id])
+  campaigns            CampaignTemplate[] @relation("CampaignTemplateToMessageTemplate")
+
+  @@unique([companyId, whatsappTemplateId])
+  @@index([companyId])
+  @@index([status])
+}
+
+model CampaignTemplate {
+  id               String            @id @default(cuid())
+  companyId        String
+  createdById      String?
+  name             String
+  description      String?
+  segments         String[]
+  recipientCount   Int               @default(0)
+  sentCount        Int               @default(0)
+  scheduledFor     DateTime?
+  status           CampaignStatus    @default(DRAFT)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy        User?             @relation("CampaignCreator", fields: [createdById], references: [id])
+  messageTemplates MessageTemplate[] @relation("CampaignTemplateToMessageTemplate")
+
+  @@index([companyId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model Deal {
+  id           String        @id @default(cuid())
+  contactId    String
+  companyId    String
+  assignedToId String
+  title        String
+  description  String?
+  value        Decimal       @default(0)
+  currency     String        @default("USD")
+  stage        DealStage     @default(PROSPECT)
+  probability  Int           @default(0)
+  source       String        @default("manual")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  closedAt     DateTime?
+  activityLogs ActivityLog[]
+  assignedTo   User          @relation("DealAssignee", fields: [assignedToId], references: [id])
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  notes        Note[]
+  quotations   Quotation[]
+  invoices     Invoice[]
+  tasks        Task[]
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([assignedToId])
+  @@index([stage])
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  title        String
+  description  String?
+  contactId    String?
+  dealId       String?
+  companyId    String
+  dueDate      DateTime
+  status       TaskStatus @default(PENDING)
+  assignedToId String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  assignedTo   User?      @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact      Contact?   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal         Deal?      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model Quotation {
+  id          String          @id @default(cuid())
+  quoteNumber String
+  contactId   String
+  dealId      String?
+  companyId   String
+  status      QuotationStatus @default(DRAFT)
+  gstPercent  Decimal         @default(0)
+  paymentTerms String?        @default("On approval")
+  terms       String?
+  subtotal    Decimal         @default(0)
+  gstAmount   Decimal         @default(0)
+  total       Decimal         @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact     Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal        Deal?           @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  invoices    Invoice[]
+  items       QuotationItem[]
+
+  @@unique([companyId, quoteNumber])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([status])
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  description String
+  quantity    Int       @default(1)
+  unitPrice   Decimal   @default(0)
+  total       Decimal   @default(0)
+  createdAt   DateTime  @default(now())
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String
+  quotationId   String?
+  contactId     String
+  dealId        String?
+  companyId     String
+  status        InvoiceStatus @default(DRAFT)
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime?
+  paymentTerms  String?
+  notes         String?
+  terms         String?
+  subtotal      Decimal       @default(0)
+  taxPercent    Decimal       @default(0)
+  cgstAmount    Decimal       @default(0)
+  sgstAmount    Decimal       @default(0)
+  igstAmount    Decimal       @default(0)
+  taxVatAmount  Decimal       @default(0)
+  total         Decimal       @default(0)
+  amountPaid    Decimal       @default(0)
+  balanceDue    Decimal       @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact       Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal          Deal?         @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  quotation     Quotation?    @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  items         InvoiceItem[]
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([quotationId])
+  @@index([status])
+  @@index([issueDate])
+  @@index([dueDate])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @default(0)
+  total       Decimal  @default(0)
+  createdAt   DateTime @default(now())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  content     String
+  contactId   String?
+  conversationId String?
+  dealId      String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  deal        Deal?    @relation(fields: [dealId], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@index([dealId])
+  @@index([conversationId])
+  @@index([contactId])
+  @@index([createdById])
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  companyId   String
+  userId      String
+  role        UserRole @default(AGENT)
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+}
+
+model ActivityLog {
+  id             String        @id @default(cuid())
+  companyId      String
+  eventType      String
+  contactId      String?
+  userId         String?
+  conversationId String?
+  dealId         String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact        Contact?      @relation(fields: [contactId], references: [id])
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  deal           Deal?         @relation(fields: [dealId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([dealId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model Integration {
+  id           String    @id @default(cuid())
+  companyId    String
+  type         String
+  name         String
+  accessToken  String?
+  refreshToken String?
+  config       Json?
+  status       String    @default("disconnected")
+  lastSyncAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, type])
+  @@index([companyId])
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  AGENT
+}
+
+enum ContactType {
+  PERSON
+  COMPANY
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ContactSegment {
+  PROSPECT
+  LEAD
+  CUSTOMER
+  VIP
+  CHURNED
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  LOST
+}
+
+enum ConversationStatus {
+  OPEN
+  ASSIGNED
+  CLOSED
+  ARCHIVED
+  WAITING
+}
+
+enum ConversationChannel {
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  GOOGLE_MESSAGES
+  MANUAL
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  TEMPLATE
+  VIDEO
+  AUDIO
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum DealStage {
+  PROSPECT
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum TemplateCategory {
+  GREETING
+  SUPPORT
+  SALES
+  FOLLOW_UP
+  GENERAL
+  PROMOTIONAL
+}
+
+enum TemplateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISABLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
