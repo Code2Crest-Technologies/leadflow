@@ -1,10 +1,10 @@
 // src/server.ts
 
-import app from './app';
+import app from "./app.js";
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { logger } from './utils/logger';
-import { testDatabaseConnection } from './config/database';
+import { logger } from "./utils/logger.js";
+import { testDatabaseConnection } from './config/database.js';
 
 const PORT = process.env.PORT || 3001;
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000')

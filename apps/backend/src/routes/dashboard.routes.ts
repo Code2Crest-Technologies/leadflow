@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
-import { prisma } from '../config/database';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { getMessageWhere, getTaskWhere } from '../middleware/permissions';
-import { getAnalyticsData } from '../services/analytics.service';
+import { prisma } from '../config/database.js';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { getMessageWhere, getTaskWhere } from '../middleware/permissions.js';
+import { getAnalyticsData } from '../services/analytics.service.js';
 
 const router = Router();
 

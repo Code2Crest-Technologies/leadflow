@@ -1,9 +1,9 @@
 // src/services/whatsappService.ts
 
 import axios, { AxiosInstance } from 'axios';
-import { logger } from '../utils/logger';
-import { prisma } from '../config/database';
-import { INotificationService } from './notificationService';
+import { logger } from '../utils/logger.js';
+import { prisma } from '../config/database.js';
+import { INotificationService } from './notificationService.js';
 
 export interface WhatsAppMessage {
   id: string;

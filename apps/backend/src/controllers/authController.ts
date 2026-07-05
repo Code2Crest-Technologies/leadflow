@@ -2,8 +2,8 @@
 
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import authService, { AuthenticationError } from '../services/authService';
-import { logger } from '../utils/logger';
+import authService, { AuthenticationError } from '../services/authService.js';
+import { logger } from '../utils/logger.js';
 
 // Validation schemas
 const registerSchema = z.object({

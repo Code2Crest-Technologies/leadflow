@@ -1,8 +1,8 @@
 // src/routes/webhook.routes.ts
 
 import { Router, Request, Response } from 'express';
-import { webhookController } from '../controllers/webhookController';
-import { validateWebhookSignature } from '../middleware/validation';
+import { webhookController } from '../controllers/webhookController.js';
+import { validateWebhookSignature } from '../middleware/validation.js';
 
 const router = Router();
 

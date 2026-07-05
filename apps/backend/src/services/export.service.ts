@@ -1,8 +1,8 @@
 import { ContactStatus, DealStage, InvoiceStatus, Prisma, QuotationStatus } from '@prisma/client';
-import type { AuthPayload } from '../types';
-import { prisma } from '../config/database';
-import { getDealWhere, getInvoiceWhere, getQuotationWhere } from '../middleware/permissions';
-import { getAnalyticsData } from './analytics.service';
+import type { AuthPayload } from '../types/index.js';
+import { prisma } from '../config/database.js';
+import { getDealWhere, getInvoiceWhere, getQuotationWhere } from '../middleware/permissions.js';
+import { getAnalyticsData } from './analytics.service.js';
 
 type ExportQuery = {
   dateFrom?: string;

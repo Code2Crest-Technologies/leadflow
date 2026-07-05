@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { requireRole } from '../middleware/permissions';
-import { getAnalyticsData } from '../services/analytics.service';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/permissions.js';
+import { getAnalyticsData } from '../services/analytics.service.js';
 
 const router = Router();
 

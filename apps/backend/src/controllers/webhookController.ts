@@ -1,9 +1,9 @@
 // src/controllers/webhookController.ts
 
 import { Request, Response } from 'express';
-import { logger } from '../utils/logger';
-import WhatsAppService from '../services/whatsappService';
-import { prisma } from '../config/database';
+import { logger } from '../utils/logger.js';
+import WhatsAppService from '../services/whatsappService.js';
+import { prisma } from '../config/database.js';
 
 export class WebhookController {
   /**

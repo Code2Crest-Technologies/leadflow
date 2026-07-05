@@ -2,9 +2,9 @@ import { Router, Response } from 'express';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
-import { prisma } from '../config/database';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { requireRole } from '../middleware/permissions';
+import { prisma } from '../config/database.js';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/permissions.js';
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { NextFunction, Response } from 'express';
 import type { Prisma } from '@prisma/client';
-import type { AuthPayload } from '../types';
-import type { AuthenticatedRequest } from './auth';
+import type { AuthPayload } from '../types/index.js';
+import type { AuthenticatedRequest } from './auth.js';
 
 export type AppRole = 'ADMIN' | 'MANAGER' | 'AGENT';
 

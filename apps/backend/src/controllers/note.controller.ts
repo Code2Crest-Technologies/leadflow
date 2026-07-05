@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { z } from 'zod';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import {
   createNote,
   deleteNote,
@@ -9,7 +9,7 @@ import {
   noteListSchema,
   noteUpdateSchema,
   updateNote,
-} from '../services/note.service';
+} from '../services/note.service.js';
 
 export async function listNotesController(req: AuthenticatedRequest, res: Response) {
   try {

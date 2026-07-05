@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { prisma } from '../config/database';
-import { ACTIVITY_TYPES } from '../constants/activityTypes';
-import { getDealWhere } from '../middleware/permissions';
-import { createActivityLog } from './activityLog.service';
+import { prisma } from '../config/database.js';
+import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
+import { getDealWhere } from '../middleware/permissions.js';
+import { createActivityLog } from './activityLog.service.js';
 
 export const dealSchema = z.object({
   contactId: z.string().min(1),

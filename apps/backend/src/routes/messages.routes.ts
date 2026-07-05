@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../config/database';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { getMessageWhere, isSalesRole } from '../middleware/permissions';
+import { prisma } from '../config/database.js';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { getMessageWhere, isSalesRole } from '../middleware/permissions.js';
 
 const router = Router();
 

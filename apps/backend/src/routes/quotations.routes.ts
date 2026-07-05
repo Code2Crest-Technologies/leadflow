@@ -1,11 +1,11 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../config/database';
-import { ACTIVITY_TYPES } from '../constants/activityTypes';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { getDealWhere, getQuotationWhere } from '../middleware/permissions';
-import { createActivityLog } from '../services/activityLog.service';
-import { generateQuotationPdfHtml } from '../services/quotationPdfHtml.service';
+import { prisma } from '../config/database.js';
+import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { getDealWhere, getQuotationWhere } from '../middleware/permissions.js';
+import { createActivityLog } from '../services/activityLog.service.js';
+import { generateQuotationPdfHtml } from '../services/quotationPdfHtml.service.js';
 
 const router = Router();
 

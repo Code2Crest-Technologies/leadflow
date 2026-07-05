@@ -1,7 +1,7 @@
 // src/config/database.ts
 
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 const isDev = process.env.NODE_ENV === 'development';
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };

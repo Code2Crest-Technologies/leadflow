@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { prisma } from '../config/database';
-import { ACTIVITY_TYPES } from '../constants/activityTypes';
-import { createActivityLog } from './activityLog.service';
+import { prisma } from '../config/database.js';
+import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
+import { createActivityLog } from './activityLog.service.js';
 
 export const noteCreateSchema = z
   .object({

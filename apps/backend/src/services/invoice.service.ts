@@ -1,11 +1,11 @@
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { z } from 'zod';
-import type { AuthPayload } from '../types';
-import { prisma } from '../config/database';
-import { ACTIVITY_TYPES } from '../constants/activityTypes';
-import { getDealWhere, getInvoiceWhere } from '../middleware/permissions';
-import { calculateTaxBreakdown } from '../utils/tax';
-import { createActivityLog } from './activityLog.service';
+import type { AuthPayload } from '../types/index.js';
+import { prisma } from '../config/database.js';
+import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
+import { getDealWhere, getInvoiceWhere } from '../middleware/permissions.js';
+import { calculateTaxBreakdown } from '../utils/tax.js';
+import { createActivityLog } from './activityLog.service.js';
 
 const invoiceItemSchema = z.object({
   description: z.string().trim().min(1),

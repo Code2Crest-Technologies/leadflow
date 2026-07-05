@@ -1,8 +1,8 @@
 import { InvoiceStatus } from '@prisma/client';
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
-import { requireRole } from '../middleware/permissions';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import { requireRole } from '../middleware/permissions.js';
 import {
   cancelInvoice,
   createInvoice,
@@ -16,8 +16,8 @@ import {
   setInvoiceStatus,
   updateInvoice,
   updateInvoicePayment,
-} from '../services/invoice.service';
-import { generateInvoicePdfHtml } from '../services/invoicePdfHtml.service';
+} from '../services/invoice.service.js';
+import { generateInvoicePdfHtml } from '../services/invoicePdfHtml.service.js';
 
 const router = Router();
 

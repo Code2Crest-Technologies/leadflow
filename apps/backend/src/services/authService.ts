@@ -3,8 +3,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
-import { prisma } from '../config/database';
-import { logger } from '../utils/logger';
+import { prisma } from '../config/database.js';
+import { logger } from '../utils/logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-only-secret';
 const JWT_EXPIRE = (process.env.JWT_EXPIRY ||

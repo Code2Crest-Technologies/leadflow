@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { z } from 'zod';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import {
   createDeal,
   dealSchema,
@@ -10,7 +10,7 @@ import {
   listDeals,
   updateDeal,
   updateDealStage,
-} from '../services/deal.service';
+} from '../services/deal.service.js';
 
 export async function listDealsController(req: AuthenticatedRequest, res: Response) {
   try {

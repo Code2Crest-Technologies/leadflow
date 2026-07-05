@@ -6,8 +6,8 @@ import {
   listDealsController,
   updateDealController,
   updateDealStageController,
-} from '../controllers/deal.controller';
-import { requireAuth } from '../middleware/auth';
+} from '../controllers/deal.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

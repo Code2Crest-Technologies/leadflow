@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
-import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { requireRole } from '../middleware/permissions';
+import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/permissions.js';
 import {
   exportAnalyticsInvoicesCsv,
   exportAnalyticsMonthlySalesCsv,
@@ -11,7 +11,7 @@ import {
   exportFileName,
   exportInvoicesCsv,
   exportQuotationsCsv,
-} from '../services/export.service';
+} from '../services/export.service.js';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
-import { prisma } from '../config/database';
-import type { ActivityType } from '../constants/activityTypes';
+import { prisma } from '../config/database.js';
+import type { ActivityType } from '../constants/activityTypes.js';
 
 type ActivityLogClient = Pick<PrismaClient, 'activityLog'> | Prisma.TransactionClient;
 

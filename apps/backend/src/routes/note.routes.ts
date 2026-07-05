@@ -4,8 +4,8 @@ import {
   deleteNoteController,
   listNotesController,
   updateNoteController,
-} from '../controllers/note.controller';
-import { requireAuth } from '../middleware/auth';
+} from '../controllers/note.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

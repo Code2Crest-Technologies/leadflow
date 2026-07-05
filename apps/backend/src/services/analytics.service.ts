@@ -1,7 +1,7 @@
-import type { AuthPayload } from '../types';
-import { prisma } from '../config/database';
-import { isOpenDealStage } from '../constants/dealStages';
-import { getDealWhere, getInvoiceWhere } from '../middleware/permissions';
+import type { AuthPayload } from '../types/index.js';
+import { prisma } from '../config/database.js';
+import { isOpenDealStage } from '../constants/dealStages.js';
+import { getDealWhere, getInvoiceWhere } from '../middleware/permissions.js';
 
 function getJsonSource(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;

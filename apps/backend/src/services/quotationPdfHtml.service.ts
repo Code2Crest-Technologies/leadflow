@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import puppeteer from 'puppeteer';
-import { calculateTaxBreakdown, isIndia } from '../utils/tax';
+import { calculateTaxBreakdown, isIndia } from '../utils/tax.js';
 
 type PdfCompany = {
   name: string;
