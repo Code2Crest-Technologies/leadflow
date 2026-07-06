@@ -15,6 +15,13 @@ export const AuthService = {
     return session;
   },
 
+  async completeSso(token: string): Promise<AuthSession> {
+    const response = await apiClient.post('/api/auth/sso/callback', { token });
+    const session = response.data.data as AuthSession;
+    useAuthStore.getState().setSession(session.token, session.user);
+    return session;
+  },
+
   logout() {
     useAuthStore.getState().clearSession();
   },

@@ -31,7 +31,8 @@ class ApiClient {
       (error: AxiosError) => {
         if (
           error.response?.status === 401 &&
-          !error.config?.url?.includes('/api/auth/login')
+          !error.config?.url?.includes('/api/auth/login') &&
+          !error.config?.url?.includes('/api/auth/sso/callback')
         ) {
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');

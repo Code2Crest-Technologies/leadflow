@@ -18,6 +18,12 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 
 /**
+ * POST /api/auth/sso/callback
+ * Unified Portal SSO login
+ */
+router.post('/sso/callback', authController.ssoCallback);
+
+/**
  * POST /api/auth/logout
  * User logout
  */

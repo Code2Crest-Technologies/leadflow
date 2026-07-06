@@ -48,7 +48,7 @@ export default function LoginPage() {
             WhatsApp-focused CRM for leads, follow-ups, quotations and invoices.
           </p>
         </div>
-        <p className="text-sm text-white/70">Access is managed by your company administrator.</p>
+        <p className="text-sm text-white/70">Access is managed by Code2Crest Unified Portal.</p>
       </section>
       <section className="flex items-center justify-center bg-[var(--color-bg)] p-6">
         <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-white p-7 shadow-sm">
@@ -85,7 +85,7 @@ export default function LoginPage() {
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">
-            Need access? Contact your company admin.
+            Access is managed by Code2Crest Unified Portal.
           </p>
         </div>
       </section>
