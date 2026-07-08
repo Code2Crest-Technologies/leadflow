@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       if (responseError === 'this_account_is_managed_by_portal') {
         setShowPortalLogin(true);
-        setError('This account is managed by Code2Crest Unified Portal. Please sign in through the portal.');
+        setError('This account is managed by Code2Crest Hub. Please sign in through the Hub.');
       } else {
         setError(responseError || 'Unable to sign in');
       }
@@ -57,7 +57,7 @@ export default function LoginPage() {
             WhatsApp-focused CRM for leads, follow-ups, quotations and invoices.
           </p>
         </div>
-        <p className="text-sm text-white/70">Access is managed by Code2Crest Unified Portal.</p>
+        <p className="text-sm text-white/70">Access is managed by Code2Crest Hub.</p>
       </section>
       <section className="flex items-center justify-center bg-[var(--color-bg)] p-6">
         <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-white p-7 shadow-sm">
@@ -96,7 +96,7 @@ export default function LoginPage() {
                     href={portalProductsUrl}
                     className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white transition hover:bg-[#063F3A]"
                   >
-                    Continue with Code2Crest Portal
+                    Continue with Code2Crest Hub
                   </a>
                 )}
               </div>
@@ -106,7 +106,7 @@ export default function LoginPage() {
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">
-            Access is managed by Code2Crest Unified Portal.
+            Access is managed by Code2Crest Hub.
           </p>
         </div>
       </section>

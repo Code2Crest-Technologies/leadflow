@@ -201,7 +201,7 @@ export const authController = {
 
   /**
    * POST /api/auth/sso/callback
-   * Code2Crest Unified Portal SSO login
+   * Code2Crest Hub SSO login
    */
   async ssoCallback(req: Request, res: Response) {
     try {

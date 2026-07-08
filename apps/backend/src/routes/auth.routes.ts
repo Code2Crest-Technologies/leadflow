@@ -19,7 +19,7 @@ router.post('/login', authController.login);
 
 /**
  * POST /api/auth/sso/callback
- * Unified Portal SSO login
+ * Code2Crest Hub SSO login
  */
 router.post('/sso/callback', authController.ssoCallback);
 

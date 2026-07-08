@@ -11,6 +11,7 @@ import {
   Building2Icon,
   CheckSquareIcon,
   FileTextIcon,
+  CreditCardIcon,
   KanbanSquareIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -31,6 +32,7 @@ const nav = [
   { label: 'Analytics', icon: BarChart3Icon, href: '/dashboard/analytics', roles: ['ADMIN', 'MANAGER'] },
   { label: 'Team', icon: UserCogIcon, href: '/dashboard/team', roles: ['ADMIN'] },
   { label: 'Company', icon: Building2Icon, href: '/dashboard/company', roles: ['ADMIN'] },
+  { label: 'Integrations', icon: CreditCardIcon, href: '/dashboard/integrations', roles: ['ADMIN'] },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -156,6 +158,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="border-t border-white/20 pt-4">
               <p className="text-sm font-semibold">{displayName}</p>
               <p className="truncate text-xs text-white/70">{user?.email}</p>
+              <div className="mt-3 grid gap-2">
+                <button type="button" onClick={() => navigateTo('/dashboard/profile')} className="rounded-xl bg-white/10 px-3 py-2 text-left text-sm font-semibold text-white">
+                  Profile
+                </button>
+                {role === 'ADMIN' && (
+                  <button type="button" onClick={() => navigateTo('/dashboard/company')} className="rounded-xl bg-white/10 px-3 py-2 text-left text-sm font-semibold text-white">
+                    Company Settings
+                  </button>
+                )}
+              </div>
               <button type="button" onClick={logout} className="mt-3 flex items-center gap-2 text-sm font-semibold text-white">
                 <LogOutIcon className="h-4 w-4" /> Sign out
               </button>
@@ -198,7 +210,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div ref={profileRef} className="relative">
             {profileOpen && (
               <div className="absolute bottom-14 left-0 w-56 rounded-2xl border border-[var(--color-border)] bg-white p-2 text-[var(--color-text)] shadow-lg">
-                <button type="button" onClick={() => setProfileOpen(false)} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-slate-50">Profile</button>
+              <button type="button" onClick={() => navigateTo('/dashboard/profile')} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-slate-50">Profile</button>
                 <button type="button" onClick={() => navigateTo('/dashboard/company')} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-slate-50">Company Settings</button>
                 <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50">
                   <LogOutIcon className="h-4 w-4" /> Sign out

@@ -25,7 +25,7 @@ function SsoCallbackContent() {
         router.replace("/dashboard");
         router.refresh();
       } catch {
-        setError("SSO login failed. Please request a fresh login from Code2Crest Unified Portal.");
+        setError("SSO login failed. Please request a fresh login from Code2Crest Hub.");
         router.replace("/login?error=sso_invalid");
       }
     }
@@ -37,7 +37,7 @@ function SsoCallbackContent() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-5 py-10">
       <section className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-white p-7 text-center shadow-sm">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-bold text-white">LF</div>
-        <p className="mt-5 text-sm font-semibold uppercase tracking-widest text-emerald-700">Unified Portal</p>
+        <p className="mt-5 text-sm font-semibold uppercase tracking-widest text-emerald-700">Code2Crest Hub</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-950">Signing you in...</h1>
         <p className="mt-3 text-sm text-slate-500">Please wait while LeadFlow verifies your Code2Crest session.</p>
         {error && (

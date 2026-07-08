@@ -40,6 +40,17 @@ const resetPasswordSchema = z.object({
     .regex(/[^A-Za-z0-9]/, 'Password must include a symbol'),
 });
 
+const changeOwnPasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z
+    .string()
+    .min(8)
+    .regex(/[a-z]/, 'Password must include a lowercase letter')
+    .regex(/[A-Z]/, 'Password must include an uppercase letter')
+    .regex(/[0-9]/, 'Password must include a number')
+    .regex(/[^A-Za-z0-9]/, 'Password must include a symbol'),
+});
+
 async function ensureNotLastActiveAdmin(userId: string, companyId: string) {
   const target = await prisma.user.findFirst({
     where: { id: userId, companyId, deletedAt: null },
@@ -67,6 +78,73 @@ function ensureNotSelfDestructiveAction(
 }
 
 router.use(requireAuth);
+
+router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await prisma.user.findFirst({
+      where: { id: req.auth!.userId, companyId: req.auth!.companyId, deletedAt: null },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+        authProvider: true,
+        lastLoginAt: true,
+        createdAt: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!data) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({ success: true, data });
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to fetch profile' });
+  }
+});
+
+router.patch('/me/password', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = changeOwnPasswordSchema.parse(req.body);
+    const user = await prisma.user.findFirst({
+      where: { id: req.auth!.userId, companyId: req.auth!.companyId, deletedAt: null },
+      select: {
+        id: true,
+        passwordHash: true,
+        authProvider: true,
+        status: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (user.status !== 'ACTIVE') return res.status(403).json({ success: false, error: 'Account is not active' });
+    if (user.authProvider === 'PORTAL') {
+      return res.status(403).json({ success: false, error: 'This account is managed through Code2Crest Hub.' });
+    }
+
+    const validPassword = await bcrypt.compare(payload.currentPassword, user.passwordHash);
+    if (!validPassword) return res.status(400).json({ success: false, error: 'Current password is incorrect' });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(payload.newPassword, 10) },
+    });
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: 'Validation error', details: error.errors });
+    }
+    res.status(500).json({ success: false, error: 'Failed to update password' });
+  }
+});
+
 router.use(requireRole('ADMIN'));
 
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {

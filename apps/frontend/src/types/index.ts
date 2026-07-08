@@ -8,8 +8,14 @@ export interface User {
   companyId: string;
   role: string;
   status?: string;
+  authProvider?: string | null;
   lastLoginAt?: string | null;
   createdAt?: string;
+  company?: {
+    id: string;
+    name: string;
+  };
+  companyName?: string | null;
 }
 
 export interface Contact {

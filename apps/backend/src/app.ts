@@ -25,6 +25,7 @@ import invoiceRoutes from './routes/invoices.routes.js';
 import exportRoutes from './routes/export.routes.js';
 import userRoutes from './routes/users.routes.js';
 import companyRoutes from './routes/company.routes.js';
+import integrationRoutes from './routes/integrations.routes.js';
 
 const app: Express = express();
 const uploadLimit = process.env.UPLOAD_MAX_BODY_SIZE || '10mb';
@@ -115,6 +116,7 @@ app.get('/api', (req: Request, res: Response) => {
       exports: '/api/export',
       users: '/api/users',
       company: '/api/company',
+      integrations: '/api/integrations',
       notes: '/api/notes',
       webhook: '/api/webhook',
     },
@@ -137,6 +139,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/company', companyRoutes);
+app.use('/api/integrations', integrationRoutes);
 app.use('/api/notes', noteRoutes);
 
 // ============ ERROR HANDLING ============
