@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
-import authService, { AuthenticationError } from '../services/authService.js';
+import authService, { AuthenticationError, PortalManagedAccountError } from '../services/authService.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../utils/logger.js';
 
@@ -180,6 +180,14 @@ export const authController = {
         return res.status(401).json({
           success: false,
           error: 'Invalid email or password',
+        });
+      }
+
+      if (error instanceof PortalManagedAccountError) {
+        logger.warn({ err: error }, 'Portal-managed account attempted direct login');
+        return res.status(403).json({
+          success: false,
+          error: 'this_account_is_managed_by_portal',
         });
       }
 

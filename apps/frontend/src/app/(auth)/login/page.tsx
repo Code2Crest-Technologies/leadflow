@@ -12,7 +12,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPortalLogin, setShowPortalLogin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.code2crest.com';
+  const portalProductsUrl = `${portalBaseUrl.replace(/\/$/, '')}/products`;
 
   useEffect(() => {
     if (localStorage.getItem('authToken')) router.replace('/dashboard');
@@ -21,17 +24,23 @@ export default function LoginPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setShowPortalLogin(false);
     setLoading(true);
     try {
       await AuthService.login(email, password);
       router.replace('/dashboard');
       router.refresh();
     } catch (requestError) {
-      setError(
-        axios.isAxiosError(requestError)
-          ? requestError.response?.data?.error || 'Unable to sign in'
-          : 'Unable to sign in'
-      );
+      const responseError = axios.isAxiosError(requestError)
+        ? requestError.response?.data?.error
+        : undefined;
+
+      if (responseError === 'this_account_is_managed_by_portal') {
+        setShowPortalLogin(true);
+        setError('This account is managed by Code2Crest Unified Portal. Please sign in through the portal.');
+      } else {
+        setError(responseError || 'Unable to sign in');
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +88,19 @@ export default function LoginPage() {
                 Forgot password?
               </button>
             </div>
-            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            {error && (
+              <div className="space-y-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <p>{error}</p>
+                {showPortalLogin && (
+                  <a
+                    href={portalProductsUrl}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white transition hover:bg-[#063F3A]"
+                  >
+                    Continue with Code2Crest Portal
+                  </a>
+                )}
+              </div>
+            )}
             <button disabled={loading} className="btn-primary w-full disabled:opacity-60">
               {loading ? 'Signing in...' : 'Sign in'}
             </button>

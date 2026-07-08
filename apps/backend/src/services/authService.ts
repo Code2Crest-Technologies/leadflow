@@ -35,6 +35,13 @@ export class AuthenticationError extends Error {
   }
 }
 
+export class PortalManagedAccountError extends Error {
+  constructor() {
+    super('this_account_is_managed_by_portal');
+    this.name = 'PortalManagedAccountError';
+  }
+}
+
 export const authService = {
   /**
    * Register a new user
@@ -109,6 +116,7 @@ export const authService = {
           role: true,
           companyId: true,
           passwordHash: true,
+          authProvider: true,
           status: true,
           lastLoginAt: true,
           deletedAt: true,
@@ -130,6 +138,10 @@ export const authService = {
 
       if (user.status === 'SUSPENDED') {
         throw new AuthenticationError('User account is suspended');
+      }
+
+      if (user.authProvider === 'PORTAL') {
+        throw new PortalManagedAccountError();
       }
 
       // Verify password
