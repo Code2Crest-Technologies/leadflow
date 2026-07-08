@@ -14,6 +14,9 @@ model User {
   firstName         String
   lastName          String
   avatar            String?
+  portalUserId      String?            @unique
+  portalRole        String?
+  authProvider      String?            @default("LOCAL")
   companyId         String
   role              UserRole           @default(AGENT)
   status            UserStatus         @default(ACTIVE)
@@ -42,6 +45,11 @@ model Company {
   website                   String?
   industry                  String?
   logo                      String?
+  portalCompanyId           String?            @unique
+  subscriptionStatus        String?
+  productAccess             Json?
+  subscriptionExpiresAt     DateTime?
+  lastPortalSyncAt          DateTime?
   gstin                     String?
   country                   String?
   addressLine1              String?
@@ -58,9 +66,9 @@ model Company {
   signature                 String?
   quotationTerms            String?
   bankDetails               String?
-  whatsappPhoneNumber       String             @unique
-  whatsappBusinessAccountId String             @unique
-  whatsappAccessToken       String
+  whatsappPhoneNumber       String?            @unique
+  whatsappBusinessAccountId String?            @unique
+  whatsappAccessToken       String?
   metaAdsAccountId          String?
   metaAdsAccessToken        String?
   subscriptionTier          String             @default("starter")

@@ -4,6 +4,8 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import type { Prisma } from '@prisma/client';
 import authService, { AuthenticationError } from '../services/authService.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../utils/logger.js';
@@ -22,17 +24,36 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-const ssoPayloadSchema = z.object({
-  product: z.literal('leadflow'),
-  companyId: z.string().min(1),
+const ssoPayloadSchema = z
+  .object({
+  product: z.string().optional(),
+  productKey: z.string().optional(),
+  portalCompanyId: z.string().min(1).optional(),
+  companyId: z.string().min(1).optional(),
   companyName: z.string().min(1),
-  userId: z.string().min(1),
+  portalUserId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
   email: z.string().email(),
   name: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   role: z.string().optional(),
-});
+  subscriptionStatus: z.string().optional(),
+  productAccess: z.unknown().optional(),
+  subscriptionExpiresAt: z.string().datetime().optional(),
+})
+  .refine((payload) => payload.product === 'leadflow' || payload.productKey === 'leadflow', {
+    message: 'Invalid product',
+    path: ['productKey'],
+  })
+  .refine((payload) => Boolean(payload.portalCompanyId || payload.companyId), {
+    message: 'Portal company ID is required',
+    path: ['portalCompanyId'],
+  })
+  .refine((payload) => Boolean(payload.portalUserId || payload.userId), {
+    message: 'Portal user ID is required',
+    path: ['portalUserId'],
+  });
 
 const ssoCallbackSchema = z.object({
   token: z.string().min(1),
@@ -43,8 +64,26 @@ const JWT_EXPIRE = process.env.JWT_EXPIRY || process.env.JWT_EXPIRE || '7d';
 
 function normalizeRole(role?: string): 'ADMIN' | 'MANAGER' | 'AGENT' {
   const upperRole = role?.toUpperCase();
+  if (upperRole === 'OWNER') return 'ADMIN';
   if (upperRole === 'ADMIN' || upperRole === 'MANAGER') return upperRole;
   return 'AGENT';
+}
+
+function resolvePortalCompanyId(payload: z.infer<typeof ssoPayloadSchema>) {
+  return payload.portalCompanyId || payload.companyId!;
+}
+
+function resolvePortalUserId(payload: z.infer<typeof ssoPayloadSchema>) {
+  return payload.portalUserId || payload.userId!;
+}
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue | undefined {
+  if (value === undefined) return undefined;
+  return value as Prisma.InputJsonValue;
+}
+
+function parseOptionalDate(value?: string) {
+  return value ? new Date(value) : undefined;
 }
 
 function splitName(payload: z.infer<typeof ssoPayloadSchema>) {
@@ -166,29 +205,48 @@ export const authController = {
       const { token } = ssoCallbackSchema.parse(req.body);
       const decoded = jwt.verify(token, process.env.SSO_SECRET);
       const payload = ssoPayloadSchema.parse(decoded);
+      const portalCompanyId = resolvePortalCompanyId(payload);
+      const portalUserId = resolvePortalUserId(payload);
       const role = normalizeRole(payload.role);
       const { firstName, lastName } = splitName(payload);
+      const now = new Date();
 
       const session = await prisma.$transaction(async (tx) => {
-        const company = await tx.company.upsert({
-          where: { id: payload.companyId },
-          create: {
-            id: payload.companyId,
+        const existingCompany =
+          (await tx.company.findUnique({ where: { portalCompanyId } })) ||
+          (await tx.company.findUnique({ where: { id: portalCompanyId } }));
+
+        const companyData = {
             name: payload.companyName,
-            whatsappPhoneNumber: `sso-${payload.companyId}`,
-            whatsappBusinessAccountId: `sso-${payload.companyId}`,
-            whatsappAccessToken: 'managed-by-unified-portal',
-          },
-          update: {
-            name: payload.companyName,
-          },
-        });
+            portalCompanyId,
+            subscriptionStatus: payload.subscriptionStatus,
+            productAccess: toJsonValue(payload.productAccess),
+            subscriptionExpiresAt: parseOptionalDate(payload.subscriptionExpiresAt),
+            lastPortalSyncAt: now,
+          };
+
+        const company = existingCompany
+          ? await tx.company.update({
+              where: { id: existingCompany.id },
+              data: companyData,
+            })
+          : await tx.company.create({
+              data: companyData,
+            });
 
         const existingUser =
-          (await tx.user.findUnique({ where: { id: payload.userId } })) ||
+          (await tx.user.findUnique({ where: { portalUserId } })) ||
+          (await tx.user.findUnique({ where: { id: portalUserId } })) ||
           (await tx.user.findUnique({ where: { email: payload.email } }));
 
-        const passwordHash = await bcrypt.hash(`sso:${payload.userId}:${payload.email}`, 10);
+        if (existingUser?.deletedAt || (existingUser?.status !== undefined && existingUser.status !== 'ACTIVE')) {
+          throw new Error('SSO_USER_DISABLED');
+        }
+
+        if (existingUser && existingUser.companyId !== company.id && !existingUser.portalUserId) {
+          throw new Error('SSO_EMAIL_CONFLICT');
+        }
+
         const user = existingUser
           ? await tx.user.update({
               where: { id: existingUser.id },
@@ -198,8 +256,10 @@ export const authController = {
                 lastName,
                 companyId: company.id,
                 role,
-                status: 'ACTIVE',
-                lastLoginAt: new Date(),
+                portalUserId,
+                portalRole: payload.role ?? null,
+                authProvider: existingUser.authProvider === 'LOCAL' ? existingUser.authProvider : 'PORTAL',
+                lastLoginAt: now,
               },
               select: {
                 id: true,
@@ -216,15 +276,17 @@ export const authController = {
             })
           : await tx.user.create({
               data: {
-                id: payload.userId,
                 email: payload.email,
                 firstName,
                 lastName,
                 companyId: company.id,
                 role,
                 status: 'ACTIVE',
-                passwordHash,
-                lastLoginAt: new Date(),
+                portalUserId,
+                portalRole: payload.role ?? null,
+                authProvider: 'PORTAL',
+                passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+                lastLoginAt: now,
               },
               select: {
                 id: true,
@@ -288,6 +350,20 @@ export const authController = {
         },
       });
     } catch (error) {
+      if (error instanceof Error && error.message === 'SSO_USER_DISABLED') {
+        return res.status(403).json({
+          success: false,
+          error: 'This user is disabled in LeadFlow. Contact your company administrator.',
+        });
+      }
+
+      if (error instanceof Error && error.message === 'SSO_EMAIL_CONFLICT') {
+        return res.status(409).json({
+          success: false,
+          error: 'This email is already linked to another LeadFlow workspace.',
+        });
+      }
+
       logger.warn({ err: error }, 'SSO login rejected');
       return res.status(401).json({
         success: false,

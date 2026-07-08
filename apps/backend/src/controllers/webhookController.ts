@@ -60,6 +60,11 @@ export class WebhookController {
       for (const entry of body.entry || []) {
         const phoneNumberId = entry.changes?.[0]?.value?.metadata?.phone_number_id;
 
+        if (!phoneNumberId) {
+          logger.warn('Webhook event missing phone number ID');
+          continue;
+        }
+
         // Find company by WhatsApp phone number
         const company = await prisma.company.findUnique({
           where: { whatsappPhoneNumber: phoneNumberId },
@@ -67,6 +72,14 @@ export class WebhookController {
 
         if (!company) {
           logger.warn('Company not found for phone number', { phoneNumberId });
+          continue;
+        }
+
+        if (!company.whatsappBusinessAccountId || !company.whatsappAccessToken) {
+          logger.warn('WhatsApp credentials missing for webhook company', {
+            companyId: company.id,
+            phoneNumberId,
+          });
           continue;
         }
 
