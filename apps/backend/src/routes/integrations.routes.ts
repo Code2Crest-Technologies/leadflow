@@ -64,10 +64,31 @@ function mergeConfig(
   return next;
 }
 
-function buildWebhookUrl(req: AuthenticatedRequest) {
-  const publicUrl = process.env.PUBLIC_API_URL || process.env.API_URL;
-  if (publicUrl) return `${publicUrl.replace(/\/$/, '')}/api/webhook`;
-  return `${req.protocol}://${req.get('host')}/api/webhook`;
+function getBackendPublicUrl() {
+  const configuredUrl = process.env.BACKEND_PUBLIC_URL?.trim();
+  const rawUrl = configuredUrl || (
+    process.env.NODE_ENV !== 'production'
+      ? `http://localhost:${process.env.PORT || '3001'}`
+      : ''
+  );
+
+  if (!rawUrl) {
+    throw new Error('BACKEND_PUBLIC_URL is required in production');
+  }
+
+  if (!/^https?:\/\//i.test(rawUrl)) {
+    throw new Error('BACKEND_PUBLIC_URL must start with http:// or https://');
+  }
+
+  if (process.env.NODE_ENV === 'production' && !/^https:\/\//i.test(rawUrl)) {
+    throw new Error('BACKEND_PUBLIC_URL must use https:// in production');
+  }
+
+  return rawUrl.replace(/\/+$/, '');
+}
+
+function buildWebhookUrl() {
+  return `${getBackendPublicUrl()}/api/webhook`;
 }
 
 router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
@@ -102,7 +123,7 @@ router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
           phoneNumberId: company?.whatsappPhoneNumber || whatsappConfig.phoneNumberId || null,
           accessToken: maskSecret(company?.whatsappAccessToken || whatsapp?.accessToken),
           verifyToken: maskSecret(whatsappConfig.verifyToken),
-          webhookUrl: buildWebhookUrl(req),
+          webhookUrl: buildWebhookUrl(),
           status: whatsapp?.status || (company?.whatsappAccessToken ? 'configured' : 'not_configured'),
         },
         meta: {
@@ -114,7 +135,7 @@ router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
           status: meta?.status || (company?.metaAdsAccessToken ? 'configured' : 'not_configured'),
         },
         webhook: {
-          url: buildWebhookUrl(req),
+          url: buildWebhookUrl(),
           status: company?.whatsappAccessToken ? 'ready' : 'waiting_for_whatsapp_credentials',
         },
       },

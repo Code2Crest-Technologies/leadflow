@@ -117,6 +117,7 @@ export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [copyMessage, setCopyMessage] = useState('');
   const [error, setError] = useState('');
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({});
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -168,6 +169,19 @@ export default function IntegrationsPage() {
 
   function toggleSecret(key: string) {
     setVisibleSecrets((current) => ({ ...current, [key]: !current[key] }));
+  }
+
+  async function copyWebhookUrl() {
+    const webhookUrl = settings.whatsapp.webhookUrl || settings.webhook.url;
+    if (!webhookUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopyMessage('Webhook URL copied.');
+      window.setTimeout(() => setCopyMessage(''), 2400);
+    } catch {
+      setError('Unable to copy webhook URL.');
+    }
   }
 
   async function saveSettings(event: FormEvent) {
@@ -257,7 +271,12 @@ export default function IntegrationsPage() {
                 <SecretInput label="Verify Token" value={settings.whatsapp.verifyToken} visible={Boolean(visibleSecrets.verifyToken)} onToggle={() => toggleSecret('verifyToken')} onChange={(value) => updateWhatsApp('verifyToken', value)} />
                 <label className="block text-sm font-semibold md:col-span-2">
                   Webhook URL
-                  <input className="input-field mt-2 bg-slate-50" value={settings.whatsapp.webhookUrl || settings.webhook.url} readOnly />
+                  <span className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input className="input-field bg-slate-50" value={settings.whatsapp.webhookUrl || settings.webhook.url} readOnly />
+                    <button type="button" onClick={copyWebhookUrl} className="btn-secondary shrink-0">
+                      Copy
+                    </button>
+                  </span>
                 </label>
               </div>
             </section>
@@ -303,6 +322,7 @@ export default function IntegrationsPage() {
             </section>
 
             {message && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
+            {copyMessage && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{copyMessage}</p>}
             {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
             <div className="flex justify-end">
