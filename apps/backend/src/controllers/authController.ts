@@ -5,7 +5,7 @@ import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import authService, { AuthenticationError, PortalManagedAccountError } from '../services/authService.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../utils/logger.js';
@@ -62,6 +62,13 @@ const ssoCallbackSchema = z.object({
 const JWT_SECRET = process.env.JWT_SECRET || 'development-only-secret';
 const JWT_EXPIRE = process.env.JWT_EXPIRY || process.env.JWT_EXPIRE || '7d';
 
+class SsoAccessDeniedError extends Error {
+  constructor(message = 'LeadFlow access is not active for this account') {
+    super(message);
+    this.name = 'SsoAccessDeniedError';
+  }
+}
+
 function normalizeRole(role?: string): 'ADMIN' | 'MANAGER' | 'AGENT' {
   const upperRole = role?.toUpperCase();
   if (upperRole === 'OWNER') return 'ADMIN';
@@ -84,6 +91,50 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue | undefined {
 
 function parseOptionalDate(value?: string) {
   return value ? new Date(value) : undefined;
+}
+
+function isLeadFlowEnabled(productAccess: unknown) {
+  if (productAccess === undefined || productAccess === null) return true;
+  if (typeof productAccess === 'boolean') return productAccess;
+  if (Array.isArray(productAccess)) {
+    return productAccess.some((item) => String(item).toLowerCase() === 'leadflow');
+  }
+
+  if (typeof productAccess === 'object') {
+    const access = productAccess as Record<string, unknown>;
+    const value = access.leadflow ?? access.leadFlow ?? access.productKey;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'leadflow' || value.toLowerCase() === 'active';
+  }
+
+  return true;
+}
+
+function assertSsoAccess(payload: z.infer<typeof ssoPayloadSchema>) {
+  const deniedStatuses = new Set(['INACTIVE', 'SUSPENDED', 'EXPIRED', 'CANCELLED', 'CANCELED']);
+  const status = payload.subscriptionStatus?.toUpperCase();
+
+  if (status && deniedStatuses.has(status)) {
+    throw new SsoAccessDeniedError('LeadFlow subscription is not active');
+  }
+
+  if (!isLeadFlowEnabled(payload.productAccess)) {
+    throw new SsoAccessDeniedError('LeadFlow product access is not enabled');
+  }
+}
+
+function isPrismaProvisioningUnavailable(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return ['P1001', 'P1002', 'P2024', 'P2028'].includes(error.code);
+  }
+
+  if (error instanceof Prisma.PrismaClientInitializationError) return true;
+
+  if (error instanceof Error) {
+    return /timeout|timed out|connection|unable to start a transaction/i.test(error.message);
+  }
+
+  return false;
 }
 
 function splitName(payload: z.infer<typeof ssoPayloadSchema>) {
@@ -218,125 +269,113 @@ export const authController = {
       const role = normalizeRole(payload.role);
       const { firstName, lastName } = splitName(payload);
       const now = new Date();
+      assertSsoAccess(payload);
 
-      const session = await prisma.$transaction(async (tx) => {
-        const existingCompany =
-          (await tx.company.findUnique({ where: { portalCompanyId } })) ||
-          (await tx.company.findUnique({ where: { id: portalCompanyId } }));
+      const existingCompany =
+        (await prisma.company.findUnique({ where: { portalCompanyId } })) ||
+        (await prisma.company.findUnique({ where: { id: portalCompanyId } }));
 
-        const companyData = {
-            name: payload.companyName,
-            portalCompanyId,
-            subscriptionStatus: payload.subscriptionStatus,
-            productAccess: toJsonValue(payload.productAccess),
-            subscriptionExpiresAt: parseOptionalDate(payload.subscriptionExpiresAt),
-            lastPortalSyncAt: now,
-          };
+      const companyData = {
+        name: payload.companyName,
+        portalCompanyId,
+        subscriptionStatus: payload.subscriptionStatus,
+        productAccess: toJsonValue(payload.productAccess),
+        subscriptionExpiresAt: parseOptionalDate(payload.subscriptionExpiresAt),
+        lastPortalSyncAt: now,
+      };
 
-        const company = existingCompany
-          ? await tx.company.update({
-              where: { id: existingCompany.id },
-              data: companyData,
-            })
-          : await tx.company.create({
-              data: companyData,
-            });
+      const company = existingCompany
+        ? await prisma.company.update({
+            where: { id: existingCompany.id },
+            data: companyData,
+          })
+        : await prisma.company.create({
+            data: companyData,
+          });
 
-        const existingUser =
-          (await tx.user.findUnique({ where: { portalUserId } })) ||
-          (await tx.user.findUnique({ where: { id: portalUserId } })) ||
-          (await tx.user.findUnique({ where: { email: payload.email } }));
+      const existingUser =
+        (await prisma.user.findUnique({ where: { portalUserId } })) ||
+        (await prisma.user.findUnique({ where: { id: portalUserId } })) ||
+        (await prisma.user.findUnique({ where: { email: payload.email } }));
 
-        if (existingUser?.deletedAt || (existingUser?.status !== undefined && existingUser.status !== 'ACTIVE')) {
-          throw new Error('SSO_USER_DISABLED');
-        }
+      if (existingUser?.deletedAt || (existingUser?.status !== undefined && existingUser.status !== 'ACTIVE')) {
+        throw new Error('SSO_USER_DISABLED');
+      }
 
-        if (existingUser && existingUser.companyId !== company.id && !existingUser.portalUserId) {
-          throw new Error('SSO_EMAIL_CONFLICT');
-        }
+      if (existingUser && existingUser.companyId !== company.id && !existingUser.portalUserId) {
+        throw new Error('SSO_EMAIL_CONFLICT');
+      }
 
-        const user = existingUser
-          ? await tx.user.update({
-              where: { id: existingUser.id },
-              data: {
-                email: payload.email,
-                firstName,
-                lastName,
-                companyId: company.id,
-                role,
-                portalUserId,
-                portalRole: payload.role ?? null,
-                authProvider: existingUser.authProvider === 'LOCAL' ? existingUser.authProvider : 'PORTAL',
-                lastLoginAt: now,
-              },
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                status: true,
-                companyId: true,
-                lastLoginAt: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            })
-          : await tx.user.create({
-              data: {
-                email: payload.email,
-                firstName,
-                lastName,
-                companyId: company.id,
-                role,
-                status: 'ACTIVE',
-                portalUserId,
-                portalRole: payload.role ?? null,
-                authProvider: 'PORTAL',
-                passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
-                lastLoginAt: now,
-              },
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                status: true,
-                companyId: true,
-                lastLoginAt: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            });
+      const userSelect = {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+        companyId: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      };
 
-        await tx.teamMember.upsert({
-          where: {
-            companyId_userId: {
+      const user = existingUser
+        ? await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              email: payload.email,
+              firstName,
+              lastName,
               companyId: company.id,
-              userId: user.id,
+              role,
+              portalUserId,
+              portalRole: payload.role ?? null,
+              authProvider: existingUser.authProvider === 'LOCAL' ? existingUser.authProvider : 'PORTAL',
+              lastLoginAt: now,
             },
-          },
-          create: {
+            select: userSelect,
+          })
+        : await prisma.user.create({
+            data: {
+              email: payload.email,
+              firstName,
+              lastName,
+              companyId: company.id,
+              role,
+              status: 'ACTIVE',
+              portalUserId,
+              portalRole: payload.role ?? null,
+              authProvider: 'PORTAL',
+              passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+              lastLoginAt: now,
+            },
+            select: userSelect,
+          });
+
+      await prisma.teamMember.upsert({
+        where: {
+          companyId_userId: {
             companyId: company.id,
             userId: user.id,
-            role,
-            permissions: [],
           },
-          update: {
-            role,
-          },
-        });
-
-        return { company, user };
+        },
+        create: {
+          companyId: company.id,
+          userId: user.id,
+          role,
+          permissions: [],
+        },
+        update: {
+          role,
+        },
       });
 
       const leadflowToken = jwt.sign(
         {
-          userId: session.user.id,
-          companyId: session.user.companyId,
-          email: session.user.email,
-          role: session.user.role,
+          userId: user.id,
+          companyId: user.companyId,
+          email: user.email,
+          role: user.role,
         },
         JWT_SECRET,
         { expiresIn: JWT_EXPIRE as jwt.SignOptions['expiresIn'] },
@@ -354,13 +393,32 @@ export const authController = {
         message: 'SSO login successful',
         data: {
           token: leadflowToken,
-          user: session.user,
+          user,
         },
       });
     } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError || error instanceof z.ZodError) {
+        logger.warn({ err: error }, 'Invalid SSO token');
+        return res.status(401).json({
+          success: false,
+          code: 'SSO_INVALID',
+          error: 'Invalid or expired SSO token',
+        });
+      }
+
+      if (error instanceof SsoAccessDeniedError) {
+        logger.warn({ err: error }, 'SSO product or subscription access denied');
+        return res.status(403).json({
+          success: false,
+          code: 'SSO_ACCESS_DENIED',
+          error: error.message,
+        });
+      }
+
       if (error instanceof Error && error.message === 'SSO_USER_DISABLED') {
         return res.status(403).json({
           success: false,
+          code: 'SSO_USER_DISABLED',
           error: 'This user is disabled in LeadFlow. Contact your company administrator.',
         });
       }
@@ -368,14 +426,25 @@ export const authController = {
       if (error instanceof Error && error.message === 'SSO_EMAIL_CONFLICT') {
         return res.status(409).json({
           success: false,
+          code: 'SSO_EMAIL_CONFLICT',
           error: 'This email is already linked to another LeadFlow workspace.',
         });
       }
 
-      logger.warn({ err: error }, 'SSO login rejected');
-      return res.status(401).json({
+      if (isPrismaProvisioningUnavailable(error)) {
+        logger.error({ err: error }, 'SSO provisioning unavailable');
+        return res.status(503).json({
+          success: false,
+          code: 'SSO_PROVISIONING_UNAVAILABLE',
+          error: 'LeadFlow provisioning is temporarily unavailable. Please try again.',
+        });
+      }
+
+      logger.error({ err: error }, 'SSO provisioning failed');
+      return res.status(500).json({
         success: false,
-        error: 'Invalid or expired SSO token',
+        code: 'SSO_PROVISIONING_FAILED',
+        error: 'SSO provisioning failed',
       });
     }
   },

@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger.js';
 
 const isDev = process.env.NODE_ENV === 'development';
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ||
@@ -12,9 +12,7 @@ export const prisma =
     log: isDev ? ['query', 'info', 'warn', 'error'] : ['warn', 'error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 
 // Test database connection
 export async function testDatabaseConnection() {
