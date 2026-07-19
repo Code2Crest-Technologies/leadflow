@@ -3,12 +3,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LeadService } from "@/services";
-import type { ActivityLog, DealWorkspace, Note } from "@/types";
+import type { ActivityLog, ClientOnboardingPanel, DealWorkspace, Note } from "@/types";
 import { openWhatsApp } from "@/utils";
 
-type Tab = "Timeline" | "Tasks" | "Quotations" | "Notes";
+type Tab = "Timeline" | "Tasks" | "Quotations" | "Notes" | "Client Onboarding";
 
-const tabs: Tab[] = ["Timeline", "Tasks", "Quotations", "Notes"];
+const tabs: Tab[] = ["Timeline", "Tasks", "Quotations", "Notes", "Client Onboarding"];
 
 const activityStyles: Record<string, { label: string; icon: string; className: string }> = {
   DEAL_CREATED: { label: "Deal Created", icon: "DC", className: "bg-emerald-50 text-emerald-700" },
@@ -18,6 +18,12 @@ const activityStyles: Record<string, { label: string; icon: string; className: s
   QUOTATION_CREATED: { label: "Quotation Generated", icon: "QC", className: "bg-amber-50 text-amber-700" },
   QUOTATION_SENT: { label: "Quotation Sent", icon: "QS", className: "bg-purple-50 text-purple-700" },
   NOTE_CREATED: { label: "Note Added", icon: "NA", className: "bg-slate-100 text-slate-700" },
+  CLIENT_ONBOARDING_LINK_CREATED: { label: "Onboarding Link Created", icon: "OL", className: "bg-cyan-50 text-cyan-700" },
+  CLIENT_ONBOARDING_SENT: { label: "Onboarding Sent", icon: "OS", className: "bg-blue-50 text-blue-700" },
+  CLIENT_ONBOARDING_SUBMITTED: { label: "Onboarding Submitted", icon: "OS", className: "bg-emerald-50 text-emerald-700" },
+  CLIENT_ONBOARDING_REVIEW_STARTED: { label: "Onboarding Review Started", icon: "OR", className: "bg-amber-50 text-amber-700" },
+  CLIENT_ONBOARDING_COMPLETED: { label: "Onboarding Completed", icon: "OC", className: "bg-emerald-50 text-emerald-700" },
+  CLIENT_ONBOARDING_LINK_REGENERATED: { label: "Onboarding Link Regenerated", icon: "LR", className: "bg-purple-50 text-purple-700" },
 };
 
 function formatMoney(value: number | string, currency = "INR") {
@@ -69,6 +75,125 @@ function EmptyState({ title, body }: { title: string; body: string }) {
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center shadow-sm">
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm text-slate-500">{body}</p>
+    </div>
+  );
+}
+
+function OnboardingPanel({
+  onboarding,
+  mutating,
+  onStart,
+  onRegenerate,
+  onMarkSent,
+  onUnderReview,
+  onComplete,
+}: {
+  onboarding?: ClientOnboardingPanel | null;
+  mutating: boolean;
+  onStart: () => Promise<void>;
+  onRegenerate: () => Promise<void>;
+  onMarkSent: () => Promise<void>;
+  onUnderReview: () => Promise<void>;
+  onComplete: () => Promise<void>;
+}) {
+  const [copied, setCopied] = useState(false);
+  const linkUrl = onboarding?.latestLink?.url || "";
+
+  async function copyLink() {
+    if (!linkUrl) return;
+    await navigator.clipboard.writeText(linkUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  if (!onboarding?.isCode2CrestTenant) {
+    return <EmptyState title="Client onboarding is not enabled" body="This Code2Crest-specific workflow is hidden for other LeadFlow tenants." />;
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+      <article className="rounded-2xl border border-slate-200 p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-cyan-700">Client Onboarding</p>
+            <h3 className="mt-2 text-2xl font-bold text-slate-950">{onboarding.template?.name || "Code2Crest Client Onboarding"}</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Launch a secure public onboarding form for WON Code2Crest deals. The link is tied to this contact and deal server-side.
+            </p>
+          </div>
+          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{onboarding.status}</span>
+        </div>
+
+        {!onboarding.eligible && (
+          <p className="mt-5 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">{onboarding.reason || "Deal must be WON before onboarding can start."}</p>
+        )}
+
+        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs font-bold uppercase text-slate-400">Template</dt>
+            <dd className="mt-1 font-semibold text-slate-900">{onboarding.template?.status || "Not bootstrapped"}</dd>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs font-bold uppercase text-slate-400">Submission</dt>
+            <dd className="mt-1 font-semibold text-slate-900">{onboarding.latestSubmission?.status || "Not submitted"}</dd>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs font-bold uppercase text-slate-400">Link Created</dt>
+            <dd className="mt-1 font-semibold text-slate-900">{formatDate(onboarding.latestLink?.createdAt)}</dd>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs font-bold uppercase text-slate-400">Expiry</dt>
+            <dd className="mt-1 font-semibold text-slate-900">{formatDate(onboarding.latestLink?.expiresAt || undefined)}</dd>
+          </div>
+        </dl>
+
+        {linkUrl ? (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-bold uppercase text-slate-400">Public link</p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+              <input className="input-field flex-1 bg-white" value={linkUrl} readOnly />
+              <button type="button" className="btn-secondary" onClick={copyLink} disabled={mutating}>
+                {copied ? "Copied" : "Copy link"}
+              </button>
+            </div>
+          </div>
+        ) : onboarding.latestLink ? (
+          <p className="mt-6 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            This secure link was created earlier. Regenerate it to get a fresh copyable URL.
+          </p>
+        ) : null}
+      </article>
+
+      <aside className="rounded-2xl border border-slate-200 p-5">
+        <h3 className="font-bold text-slate-950">Actions</h3>
+        <div className="mt-4 grid gap-3">
+          <button type="button" className="btn-primary justify-center" onClick={onStart} disabled={mutating || !onboarding.eligible || Boolean(onboarding.latestLink)}>
+            Start Client Onboarding
+          </button>
+          <button
+            type="button"
+            className="btn-secondary justify-center"
+            onClick={onRegenerate}
+            disabled={mutating || !onboarding.latestLink}
+          >
+            Regenerate link
+          </button>
+          <button type="button" className="btn-secondary justify-center" onClick={onMarkSent} disabled={mutating || !onboarding.latestLink}>
+            Mark Sent
+          </button>
+          <button type="button" className="btn-secondary justify-center" onClick={onUnderReview} disabled={mutating || !onboarding.latestSubmission}>
+            Mark Under Review
+          </button>
+          <button type="button" className="btn-primary justify-center" onClick={onComplete} disabled={mutating || !onboarding.latestSubmission}>
+            Mark Completed
+          </button>
+          {onboarding.latestSubmission && onboarding.template && (
+            <Link href={`/dashboard/forms/${onboarding.template.id}/submissions`} className="btn-secondary justify-center text-center">
+              View submission
+            </Link>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }
@@ -154,6 +279,20 @@ export default function DealDetailsPage({ params }: { params: { id: string } }) 
       await load();
     } catch {
       setError("Could not delete note.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function runOnboardingAction(action: () => Promise<unknown>, failureMessage: string, confirmMessage?: string) {
+    if (confirmMessage && !window.confirm(confirmMessage)) return;
+    setMutating(true);
+    setError("");
+    try {
+      const panel = (await action()) as ClientOnboardingPanel;
+      setWorkspace((current) => (current ? { ...current, onboarding: panel, deal: { ...current.deal, onboardingStatus: panel.status } } : current));
+    } catch {
+      setError(failureMessage);
     } finally {
       setMutating(false);
     }
@@ -443,6 +582,26 @@ export default function DealDetailsPage({ params }: { params: { id: string } }) 
                 )}
               </div>
             </div>
+          )}
+
+          {activeTab === "Client Onboarding" && (
+            <OnboardingPanel
+              onboarding={workspace.onboarding}
+              mutating={mutating}
+              onStart={() => runOnboardingAction(() => LeadService.startClientOnboarding(params.id), "Could not start client onboarding.")}
+              onRegenerate={() =>
+                runOnboardingAction(
+                  () => LeadService.regenerateClientOnboarding(params.id),
+                  "Could not regenerate onboarding link.",
+                  "Regenerate the onboarding link? The previous active link will be invalidated.",
+                )
+              }
+              onMarkSent={() => runOnboardingAction(() => LeadService.markClientOnboardingSent(params.id), "Could not mark onboarding as sent.")}
+              onUnderReview={() =>
+                runOnboardingAction(() => LeadService.markClientOnboardingUnderReview(params.id), "Could not mark onboarding under review.")
+              }
+              onComplete={() => runOnboardingAction(() => LeadService.markClientOnboardingCompleted(params.id), "Could not complete onboarding.")}
+            />
           )}
         </div>
       </section>

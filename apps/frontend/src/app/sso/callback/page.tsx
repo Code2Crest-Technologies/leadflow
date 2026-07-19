@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthService } from "@/services";
@@ -36,7 +37,9 @@ function SsoCallbackContent() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-5 py-10">
       <section className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-white p-7 text-center shadow-sm">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-bold text-white">LF</div>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white">
+          <Image src="/icon.png" alt="LeadFlow" width={48} height={48} className="h-11 w-11 object-contain" priority />
+        </div>
         <p className="mt-5 text-sm font-semibold uppercase tracking-widest text-emerald-700">Code2Crest Hub</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-950">Signing you in...</h1>
         <p className="mt-3 text-sm text-slate-500">Please wait while LeadFlow verifies your Code2Crest session.</p>

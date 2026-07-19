@@ -93,10 +93,20 @@ export interface Deal {
   stage: string;
   probability: number;
   source?: string;
+  onboardingStatus?: DealOnboardingStatus;
   createdAt: string;
   updatedAt?: string;
   contact?: Pick<Contact, 'firstName' | 'lastName' | 'phoneNumber'>;
 }
+
+export type DealOnboardingStatus =
+  | 'NOT_STARTED'
+  | 'LINK_CREATED'
+  | 'SENT'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'COMPLETED';
 
 export interface Task {
   id: string;
@@ -225,6 +235,34 @@ export interface DealWorkspace {
   quotations: Quotation[];
   activities: ActivityLog[];
   notes: Note[];
+  onboarding?: ClientOnboardingPanel | null;
+}
+
+export interface ClientOnboardingPanel {
+  isCode2CrestTenant: boolean;
+  eligible: boolean;
+  reason?: string | null;
+  status: DealOnboardingStatus;
+  template?: {
+    id: string;
+    name: string;
+    status: string;
+    systemKey?: string | null;
+  } | null;
+  latestLink?: {
+    id: string;
+    createdAt: string;
+    expiresAt?: string | null;
+    maxUses?: number | null;
+    usedCount: number;
+    isActive: boolean;
+    url?: string | null;
+  } | null;
+  latestSubmission?: {
+    id: string;
+    status: FormSubmissionStatus;
+    submittedAt: string;
+  } | null;
 }
 
 export interface MessageTemplate {
@@ -234,4 +272,108 @@ export interface MessageTemplate {
   category: string;
   status: string;
   variables?: string[];
+}
+
+export type FormStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+export type FormPurpose =
+  | 'GENERAL'
+  | 'CLIENT_ONBOARDING'
+  | 'REQUIREMENTS'
+  | 'LEAD_CAPTURE'
+  | 'SURVEY'
+  | 'FEEDBACK'
+  | 'SERVICE_REQUEST';
+export type FormFieldType =
+  | 'TEXT'
+  | 'TEXTAREA'
+  | 'EMAIL'
+  | 'PHONE'
+  | 'NUMBER'
+  | 'URL'
+  | 'DATE'
+  | 'SELECT'
+  | 'MULTISELECT'
+  | 'RADIO'
+  | 'CHECKBOX'
+  | 'BOOLEAN';
+export type FormSubmissionStatus = 'RECEIVED' | 'REVIEWED' | 'COMPLETED';
+
+export interface FormOption {
+  label: string;
+  value: string;
+}
+
+export interface LeadFlowFormField {
+  id?: string;
+  key: string;
+  label: string;
+  type: FormFieldType;
+  placeholder?: string | null;
+  helpText?: string | null;
+  required: boolean;
+  order: number;
+  options?: FormOption[] | null;
+  validation?: Record<string, unknown> | null;
+}
+
+export interface LeadFlowForm {
+  id: string;
+  name: string;
+  slug: string;
+  systemKey?: string | null;
+  description?: string | null;
+  status: FormStatus;
+  purpose: FormPurpose;
+  createdAt: string;
+  updatedAt: string;
+  fields?: LeadFlowFormField[];
+  _count?: {
+    fields: number;
+    submissions: number;
+  };
+}
+
+export interface PublicFormLink {
+  id: string;
+  formId: string;
+  expiresAt?: string | null;
+  maxUses?: number | null;
+  usedCount: number;
+  isActive: boolean;
+  createdAt: string;
+  token?: string;
+  url?: string;
+  contact?: Pick<Contact, 'firstName' | 'lastName' | 'phoneNumber'> | null;
+  deal?: Pick<Deal, 'title' | 'stage'> | null;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  submittedByName?: string | null;
+  submittedByEmail?: string | null;
+  status: FormSubmissionStatus;
+  submittedAt: string;
+  contact?: Pick<Contact, 'firstName' | 'lastName' | 'phoneNumber' | 'email'> | null;
+  deal?: Pick<Deal, 'title' | 'stage'> | null;
+  values?: Array<{
+    id: string;
+    value: unknown;
+    field: LeadFlowFormField;
+  }>;
+  form?: LeadFlowForm;
+  _count?: {
+    values: number;
+  };
+}
+
+export interface PublicFormPayload {
+  form: Pick<LeadFlowForm, 'name' | 'description' | 'purpose'> & {
+    fields: LeadFlowFormField[];
+  };
+  company: {
+    name: string;
+    logoUrl?: string | null;
+  };
+  prefill?: Record<string, unknown>;
 }

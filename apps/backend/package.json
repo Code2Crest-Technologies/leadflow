@@ -17,7 +17,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:seed": "node prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "bootstrap:code2crest-onboarding": "tsx src/scripts/ensure-code2crest-onboarding.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.4.1",

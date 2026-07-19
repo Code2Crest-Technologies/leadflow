@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthService } from '@/services';
 import { useAuthStore } from '@/store';
@@ -29,6 +30,7 @@ const nav = [
   { label: 'Tasks', icon: CheckSquareIcon, href: '/dashboard/tasks', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Quotations', icon: FileTextIcon, href: '/dashboard/quotations', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Invoices', icon: ReceiptIcon, href: '/dashboard/invoices', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
+  { label: 'Forms', icon: FileTextIcon, href: '/dashboard/forms', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Analytics', icon: BarChart3Icon, href: '/dashboard/analytics', roles: ['ADMIN', 'MANAGER'] },
   { label: 'Team', icon: UserCogIcon, href: '/dashboard/team', roles: ['ADMIN'] },
   { label: 'Company', icon: Building2Icon, href: '/dashboard/company', roles: ['ADMIN'] },
@@ -102,7 +104,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen overflow-x-hidden bg-[var(--color-bg)] lg:flex">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[var(--color-primary)] px-4 text-white lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-3 font-bold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-sm">LF</span>
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white">
+            <Image src="/icon.png" alt="LeadFlow" width={36} height={36} className="h-8 w-8 object-contain" priority />
+          </span>
           LeadFlow
         </Link>
         <button
@@ -126,7 +130,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <aside className="relative flex h-full w-[82vw] max-w-xs flex-col bg-[var(--color-primary)] p-4 text-white shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <Link href="/dashboard" className="flex items-center gap-3 font-bold">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 text-sm">LF</span>
+                <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-white">
+                  <Image src="/icon.png" alt="LeadFlow" width={40} height={40} className="h-9 w-9 object-contain" priority />
+                </span>
                 LeadFlow
               </Link>
               <button
@@ -179,7 +185,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="group/sidebar z-40 hidden bg-[var(--color-primary)] text-white lg:fixed lg:inset-y-0 lg:flex lg:w-[84px] lg:flex-col lg:overflow-hidden lg:transition-all lg:duration-300 lg:hover:w-[260px]">
         <div className="flex h-16 items-center justify-between px-4 lg:h-20 lg:justify-start lg:gap-3">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-3 text-lg font-bold text-white">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-sm">LF</span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white">
+              <Image src="/icon.png" alt="LeadFlow" width={40} height={40} className="h-9 w-9 object-contain" priority />
+            </span>
             <span className="hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 lg:block">Lead <span className="text-white/80">Flow</span></span>
             <span className="lg:hidden">Lead <span className="text-white/80">Flow</span></span>
           </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import PasswordInput from '@/components/shared/PasswordInput';
@@ -62,7 +63,9 @@ export default function LoginPage() {
       <section className="flex items-center justify-center bg-[var(--color-bg)] p-6">
         <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-white p-7 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-bold text-white">LF</div>
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white">
+              <Image src="/icon.png" alt="LeadFlow" width={44} height={44} className="h-10 w-10 object-contain" priority />
+            </div>
             <div>
               <p className="text-lg font-bold text-slate-950">LeadFlow</p>
               <p className="text-xs text-slate-500">Code2Crest CRM</p>
@@ -77,7 +80,7 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-slate-700">Email
               <span className="relative mt-2 block">
                 <MailIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input className="input-field pl-10" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <input className="input-field pl-10" placeholder="name@company.com" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </span>
             </label>
             <label className="block text-sm font-medium text-slate-700">Password

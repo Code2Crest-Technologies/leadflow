@@ -73,6 +73,21 @@ export const LeadService = {
   async updateDealStage(id: string, stage: string) {
     return (await apiClient.patch(`/api/deals/${id}/stage`, { stage })).data.data;
   },
+  async startClientOnboarding(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/start`)).data.data;
+  },
+  async regenerateClientOnboarding(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/regenerate`)).data.data;
+  },
+  async markClientOnboardingSent(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/mark-sent`)).data.data;
+  },
+  async markClientOnboardingUnderReview(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/under-review`)).data.data;
+  },
+  async markClientOnboardingCompleted(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/complete`)).data.data;
+  },
   async getTasks() {
     return (await apiClient.get('/api/tasks')).data.data;
   },

@@ -3,6 +3,7 @@ import { prisma } from '../config/database.js';
 import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import { getDealWhere } from '../middleware/permissions.js';
 import { createActivityLog } from './activityLog.service.js';
+import { getDealOnboardingPanel } from './clientOnboarding.service.js';
 
 export const dealSchema = z.object({
   contactId: z.string().min(1),
@@ -193,6 +194,7 @@ export async function getDealWorkspace(auth: AuthContext, dealId: string) {
     quotations,
     activities: activityLogs,
     notes,
+    onboarding: await getDealOnboardingPanel(auth, deal.id),
   };
 }
 

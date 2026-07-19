@@ -11,6 +11,20 @@ import {
   updateDeal,
   updateDealStage,
 } from '../services/deal.service.js';
+import {
+  ClientOnboardingError,
+  markClientOnboardingSent,
+  regenerateClientOnboardingLink,
+  startClientOnboarding,
+  updateOnboardingReviewStatus,
+} from '../services/clientOnboarding.service.js';
+
+function handleClientOnboardingError(error: unknown, res: Response) {
+  if (error instanceof ClientOnboardingError) {
+    return res.status(error.statusCode).json({ success: false, code: error.code, error: error.message });
+  }
+  return res.status(500).json({ success: false, error: 'Client onboarding request failed' });
+}
 
 export async function listDealsController(req: AuthenticatedRequest, res: Response) {
   try {
@@ -104,5 +118,45 @@ export async function getDealTimelineController(req: AuthenticatedRequest, res: 
     res.json({ success: true, data });
   } catch {
     res.status(500).json({ success: false, error: 'Failed to fetch deal timeline' });
+  }
+}
+
+export async function startClientOnboardingController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.status(201).json({ success: true, data: await startClientOnboarding(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function regenerateClientOnboardingController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.status(201).json({ success: true, data: await regenerateClientOnboardingLink(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function markClientOnboardingSentController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ success: true, data: await markClientOnboardingSent(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function markClientOnboardingUnderReviewController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ success: true, data: await updateOnboardingReviewStatus(req.auth!, req.params.id, 'UNDER_REVIEW') });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function markClientOnboardingCompletedController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ success: true, data: await updateOnboardingReviewStatus(req.auth!, req.params.id, 'COMPLETED') });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
   }
 }

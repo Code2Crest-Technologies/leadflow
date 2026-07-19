@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   BarChart3Icon,
   CheckSquareIcon,
@@ -34,7 +35,9 @@ export default function Home() {
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6">
         <Link href="/" className="flex items-center gap-3 font-bold">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm text-white">LF</span>
+          <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-white">
+            <Image src="/icon.png" alt="LeadFlow" width={40} height={40} className="h-9 w-9 object-contain" priority />
+          </span>
           LeadFlow
         </Link>
         <Link href="/login" className="btn-secondary inline-flex items-center gap-2">

@@ -29,6 +29,7 @@ model User {
   campaignTemplates CampaignTemplate[] @relation("CampaignCreator")
   conversations     Conversation[]
   deals             Deal[]             @relation("DealAssignee")
+  forms             Form[]             @relation("FormCreator")
   messages          Message[]          @relation("MessageSender")
   messageTemplates  MessageTemplate[]  @relation("TemplateCreator")
   notes             Note[]
@@ -83,6 +84,9 @@ model Company {
   contactGroups             ContactGroup[]
   conversations             Conversation[]
   deals                     Deal[]
+  forms                     Form[]
+  formSubmissions           FormSubmission[]
+  publicFormTokens          PublicFormToken[]
   integrations              Integration[]
   invoices                  Invoice[]
   messages                  Message[]
@@ -130,6 +134,8 @@ model Contact {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   activityLogs      ActivityLog[]
+  formSubmissions   FormSubmission[]
+  publicFormTokens  PublicFormToken[]
   company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   group             ContactGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   conversations     Conversation[]
@@ -283,10 +289,13 @@ model Deal {
   stage        DealStage     @default(PROSPECT)
   probability  Int           @default(0)
   source       String        @default("manual")
+  onboardingStatus DealOnboardingStatus @default(NOT_STARTED)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   closedAt     DateTime?
   activityLogs ActivityLog[]
+  formSubmissions FormSubmission[]
+  publicFormTokens PublicFormToken[]
   assignedTo   User          @relation("DealAssignee", fields: [assignedToId], references: [id])
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -299,6 +308,7 @@ model Deal {
   @@index([companyId])
   @@index([assignedToId])
   @@index([stage])
+  @@index([onboardingStatus])
 }
 
 model Task {
@@ -324,6 +334,119 @@ model Task {
   @@index([assignedToId])
   @@index([dueDate])
   @@index([status])
+}
+
+model Form {
+  id           String           @id @default(cuid())
+  companyId    String
+  name         String
+  slug         String
+  systemKey    String?
+  description  String?
+  status       FormStatus       @default(DRAFT)
+  purpose      FormPurpose      @default(GENERAL)
+  createdById  String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation("FormCreator", fields: [createdById], references: [id])
+  fields       FormField[]
+  submissions  FormSubmission[]
+  publicTokens PublicFormToken[]
+
+  @@unique([companyId, slug])
+  @@unique([companyId, systemKey])
+  @@index([companyId])
+  @@index([createdById])
+  @@index([status])
+  @@index([purpose])
+}
+
+model FormField {
+  id          String                @id @default(cuid())
+  formId      String
+  key         String
+  label       String
+  type        FormFieldType
+  placeholder String?
+  helpText    String?
+  required    Boolean               @default(false)
+  order       Int                   @default(0)
+  options     Json?
+  validation  Json?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  form        Form                  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  values      FormSubmissionValue[]
+
+  @@unique([formId, key])
+  @@index([formId])
+  @@index([order])
+}
+
+model FormSubmission {
+  id               String               @id @default(cuid())
+  formId           String
+  companyId        String
+  contactId        String?
+  dealId           String?
+  submittedByName  String?
+  submittedByEmail String?
+  status           FormSubmissionStatus @default(RECEIVED)
+  submittedAt      DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  form             Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact          Contact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  deal             Deal?                @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  values           FormSubmissionValue[]
+
+  @@index([formId])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model FormSubmissionValue {
+  id           String         @id @default(cuid())
+  submissionId String
+  fieldId      String
+  value        Json
+  createdAt    DateTime       @default(now())
+  submission   FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field        FormField      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, fieldId])
+  @@index([submissionId])
+  @@index([fieldId])
+}
+
+model PublicFormToken {
+  id        String    @id @default(cuid())
+  formId    String
+  companyId String
+  contactId String?
+  dealId    String?
+  tokenHash String    @unique
+  expiresAt DateTime?
+  maxUses   Int?
+  usedCount Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  form      Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  deal      Deal?     @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  @@index([formId])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([expiresAt])
+  @@index([isActive])
 }
 
 model Quotation {
@@ -531,6 +654,43 @@ enum ContactStatus {
   LOST
 }
 
+enum FormStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FormPurpose {
+  GENERAL
+  CLIENT_ONBOARDING
+  REQUIREMENTS
+  LEAD_CAPTURE
+  SURVEY
+  FEEDBACK
+  SERVICE_REQUEST
+}
+
+enum FormFieldType {
+  TEXT
+  TEXTAREA
+  EMAIL
+  PHONE
+  NUMBER
+  URL
+  DATE
+  SELECT
+  MULTISELECT
+  RADIO
+  CHECKBOX
+  BOOLEAN
+}
+
+enum FormSubmissionStatus {
+  RECEIVED
+  REVIEWED
+  COMPLETED
+}
+
 enum ConversationStatus {
   OPEN
   ASSIGNED
@@ -577,6 +737,16 @@ enum DealStage {
   NEGOTIATION
   WON
   LOST
+}
+
+enum DealOnboardingStatus {
+  NOT_STARTED
+  LINK_CREATED
+  SENT
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  COMPLETED
 }
 
 enum TemplateCategory {

@@ -26,6 +26,12 @@ export function requirePermission(permission: string) {
     'analytics:view': ['ADMIN', 'MANAGER'],
     'users:manage': ['ADMIN'],
     'company:manage': ['ADMIN'],
+    'forms.read': ['ADMIN', 'MANAGER', 'AGENT'],
+    'forms.create': ['ADMIN', 'MANAGER'],
+    'forms.update': ['ADMIN', 'MANAGER'],
+    'forms.delete': ['ADMIN'],
+    'forms.publish': ['ADMIN', 'MANAGER'],
+    'forms.submissions.read': ['ADMIN', 'MANAGER', 'AGENT'],
   };
 
   return requireRole(...(permissionRoles[permission] || ['ADMIN']));
