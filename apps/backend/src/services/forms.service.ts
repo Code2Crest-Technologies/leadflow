@@ -6,6 +6,8 @@ import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import type { AuthPayload } from '../types/index.js';
 import { createActivityLog } from './activityLog.service.js';
 import {
+  getCode2CrestOnboardingVisibleFieldKeys,
+  isCode2CrestClientOnboarding,
   updateDealOnboardingFromPublicView,
   updateDealOnboardingFromSubmission,
 } from './clientOnboarding.service.js';
@@ -163,6 +165,56 @@ function hashToken(token: string) {
 
 function rawToken() {
   return crypto.randomBytes(32).toString('base64url');
+}
+
+function shouldPersistSubmissionValue(value: unknown) {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new FormsError(400, 'FORM_VALUE_NOT_SERIALIZABLE', 'One or more form values are invalid.');
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => toInputJsonValue(item)) as Prisma.InputJsonArray;
+  }
+  if (isPlainJsonObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, nestedValue]) => nestedValue !== undefined)
+        .map(([key, nestedValue]) => [key, nestedValue === null ? null : toInputJsonValue(nestedValue)]),
+    ) as Prisma.InputJsonObject;
+  }
+  throw new FormsError(400, 'FORM_VALUE_NOT_SERIALIZABLE', 'One or more form values are invalid.');
+}
+
+export function sanitizeSubmissionValues(fields: Array<{ id: string; key: string }>, values: SubmissionValueMap) {
+  return fields
+    .map((field) => ({ fieldId: field.id, value: values[field.key] }))
+    .filter((item) => shouldPersistSubmissionValue(item.value))
+    .map((item) => ({
+      fieldId: item.fieldId,
+      value: toInputJsonValue(item.value),
+    }));
+}
+
+function getPublicSubmissionFields(
+  fields: Awaited<ReturnType<typeof getPublicFormByToken>>['form']['fields'],
+  systemKey: string | null,
+  values: SubmissionValueMap,
+) {
+  if (!isCode2CrestClientOnboarding(systemKey)) return fields;
+  const visibleKeys = getCode2CrestOnboardingVisibleFieldKeys(values);
+  return fields.filter((field) => visibleKeys.has(field.key));
 }
 
 function formWhere(auth: AuthPayload): Prisma.FormWhereInput {
@@ -503,8 +555,21 @@ export async function submitPublicForm(token: string, input: z.infer<typeof publ
 
   const link = await getPublicFormByToken(token);
   const values = input.values as SubmissionValueMap;
-  validateSubmissionValues(link.form.fields, values);
-  const submittedBy = getSubmittedBy(link.form.fields, values);
+  const validFieldKeys = new Set(link.form.fields.map((field) => field.key));
+  const unknownFieldErrors = Object.fromEntries(
+    Object.keys(values)
+      .filter((key) => !validFieldKeys.has(key))
+      .map((key) => [key, 'Unknown field.']),
+  );
+  if (Object.keys(unknownFieldErrors).length > 0) {
+    throw new FormSubmissionValidationError(unknownFieldErrors);
+  }
+
+  const submissionFields = getPublicSubmissionFields(link.form.fields, link.form.systemKey, values);
+  const visibleValues = Object.fromEntries(submissionFields.map((field) => [field.key, values[field.key]]));
+  validateSubmissionValues(submissionFields, visibleValues);
+  const submittedBy = getSubmittedBy(submissionFields, visibleValues);
+  const submissionValues = sanitizeSubmissionValues(submissionFields, visibleValues);
 
   const submission = await prisma.$transaction(async (tx) => {
     const created = await tx.formSubmission.create({
@@ -516,10 +581,7 @@ export async function submitPublicForm(token: string, input: z.infer<typeof publ
         submittedByName: submittedBy.submittedByName,
         submittedByEmail: submittedBy.submittedByEmail,
         values: {
-          create: link.form.fields.map((field) => ({
-            fieldId: field.id,
-            value: values[field.key] as Prisma.InputJsonValue,
-          })),
+          create: submissionValues,
         },
       },
     });

@@ -13,6 +13,124 @@ const TEMPLATE_SLUG = 'code2crest-client-onboarding';
 const TEMPLATE_NAME = 'Code2Crest Client Onboarding';
 const TOKEN_DAYS = 30;
 
+const WEBSITE_SERVICE_TYPES = new Set(['Website Development', 'Web Application Development', 'E-Commerce Solutions']);
+const SOFTWARE_SERVICE_TYPES = new Set(['Mobile App Development', 'Custom Software Development', 'SaaS / Product Development']);
+const MAINTENANCE_SERVICE_TYPES = new Set(['Maintenance & Support']);
+
+const ALWAYS_VISIBLE_ONBOARDING_KEYS = [
+  'primaryContactName',
+  'companyName',
+  'businessEmail',
+  'phone',
+  'whatsappNumber',
+  'businessWebsite',
+  'industry',
+  'businessAddress',
+  'gstin',
+  'projectName',
+  'serviceType',
+  'projectSummary',
+  'primaryBusinessGoal',
+  'targetAudience',
+  'referenceWebsites',
+  'competitors',
+  'expectedLaunchDate',
+  'additionalRequirements',
+  'informationConfirmed',
+  'onboardingConsent',
+];
+
+const BRAND_CONTENT_ONBOARDING_KEYS = [
+  'hasLogo',
+  'brandColors',
+  'brandFonts',
+  'brandGuidelinesAvailable',
+  'brandingNotes',
+  'contentProvider',
+  'hasCompanyProfile',
+  'hasProductServiceContent',
+  'hasImages',
+  'hasVideos',
+  'contentNotes',
+];
+
+const WEBSITE_ONBOARDING_KEYS = [
+  'existingDomain',
+  'domainName',
+  'domainProvider',
+  'existingHosting',
+  'hostingProvider',
+  'estimatedPages',
+  'cmsRequired',
+  'blogRequired',
+  'whatsappIntegration',
+  'paymentGatewayRequired',
+  'multilingualRequired',
+  'seoRequired',
+  'analyticsRequired',
+  'googleBusinessProfileRequired',
+];
+
+const SOFTWARE_ONBOARDING_KEYS = [
+  'userRolesRequired',
+  'coreFeatures',
+  'adminDashboardRequired',
+  'authenticationRequired',
+  'paymentIntegrationRequired',
+  'thirdPartyIntegrations',
+  'reportsRequired',
+  'notificationsRequired',
+  'existingApis',
+  'expectedUsers',
+];
+
+const MAINTENANCE_ONBOARDING_KEYS = [
+  'existingSystemUrl',
+  'currentTechnology',
+  'supportType',
+  'issueSummary',
+  'maintenanceFrequency',
+  'accessRequired',
+];
+
+const TECHNICAL_ONBOARDING_KEYS = [
+  'domainAccessRequired',
+  'hostingAccessRequired',
+  'googleAccessRequired',
+  'metaBusinessAccessRequired',
+  'technicalNotes',
+];
+
+export function isCode2CrestClientOnboarding(systemKey?: string | null) {
+  return systemKey === CODE2CREST_CLIENT_ONBOARDING_SYSTEM_KEY;
+}
+
+export function getCode2CrestOnboardingVisibleFieldKeys(values: Record<string, unknown>) {
+  const serviceType = typeof values.serviceType === 'string' ? values.serviceType : '';
+  const visibleKeys = new Set(ALWAYS_VISIBLE_ONBOARDING_KEYS);
+
+  if (!serviceType || WEBSITE_SERVICE_TYPES.has(serviceType) || SOFTWARE_SERVICE_TYPES.has(serviceType) || serviceType === 'Other') {
+    BRAND_CONTENT_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+  }
+
+  if (WEBSITE_SERVICE_TYPES.has(serviceType)) {
+    WEBSITE_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+    TECHNICAL_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+  }
+
+  if (SOFTWARE_SERVICE_TYPES.has(serviceType)) {
+    SOFTWARE_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+    TECHNICAL_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+  }
+
+  if (MAINTENANCE_SERVICE_TYPES.has(serviceType)) {
+    MAINTENANCE_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+    TECHNICAL_ONBOARDING_KEYS.forEach((key) => visibleKeys.add(key));
+  }
+
+  return visibleKeys;
+}
+
 export class ClientOnboardingError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -112,6 +230,22 @@ export const code2crestOnboardingFields: OnboardingField[] = [
   { key: 'notificationsRequired', label: 'Notifications required', type: 'TEXTAREA' },
   { key: 'existingApis', label: 'Existing APIs', type: 'TEXTAREA' },
   { key: 'expectedUsers', label: 'Expected users', type: 'NUMBER' },
+  { key: 'existingSystemUrl', label: 'Existing system URL', type: 'URL' },
+  { key: 'currentTechnology', label: 'Current technology stack', type: 'TEXT' },
+  {
+    key: 'supportType',
+    label: 'Support type',
+    type: 'SELECT',
+    options: ['Bug fixes', 'Enhancements', 'Security updates', 'Ongoing maintenance', 'Other'].map((value) => ({ label: value, value })),
+  },
+  { key: 'issueSummary', label: 'Issue or support summary', type: 'TEXTAREA' },
+  {
+    key: 'maintenanceFrequency',
+    label: 'Maintenance frequency',
+    type: 'SELECT',
+    options: ['One-time', 'Weekly', 'Monthly', 'Quarterly', 'As needed'].map((value) => ({ label: value, value })),
+  },
+  { key: 'accessRequired', label: 'Will Code2Crest need system access?', type: 'BOOLEAN', placeholder: 'Yes' },
   { key: 'domainAccessRequired', label: 'Domain access required?', type: 'BOOLEAN', placeholder: 'Yes' },
   { key: 'hostingAccessRequired', label: 'Hosting access required?', type: 'BOOLEAN', placeholder: 'Yes' },
   { key: 'googleAccessRequired', label: 'Google access required?', type: 'BOOLEAN', placeholder: 'Yes' },

@@ -4,6 +4,7 @@ import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import {
   CODE2CREST_CLIENT_ONBOARDING_SYSTEM_KEY,
   code2crestOnboardingFields,
+  getCode2CrestOnboardingVisibleFieldKeys,
 } from '../services/clientOnboarding.service.js';
 
 describe('Code2Crest client onboarding foundation', () => {
@@ -51,5 +52,18 @@ describe('Code2Crest client onboarding foundation', () => {
     expect(service).toContain('contactId: deal.contactId');
     expect(service).toContain('dealId: deal.id');
     expect(service).toContain('isActive: false');
+  });
+
+  it('shows only service-specific onboarding fields', () => {
+    const websiteKeys = getCode2CrestOnboardingVisibleFieldKeys({ serviceType: 'Website Development' });
+    const appKeys = getCode2CrestOnboardingVisibleFieldKeys({ serviceType: 'Mobile App Development' });
+    const maintenanceKeys = getCode2CrestOnboardingVisibleFieldKeys({ serviceType: 'Maintenance & Support' });
+
+    expect(websiteKeys.has('estimatedPages')).toBe(true);
+    expect(websiteKeys.has('coreFeatures')).toBe(false);
+    expect(appKeys.has('coreFeatures')).toBe(true);
+    expect(appKeys.has('estimatedPages')).toBe(false);
+    expect(maintenanceKeys.has('issueSummary')).toBe(true);
+    expect(maintenanceKeys.has('estimatedPages')).toBe(false);
   });
 });

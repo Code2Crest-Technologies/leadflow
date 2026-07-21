@@ -369,6 +369,8 @@ export interface FormSubmission {
 
 export interface PublicFormPayload {
   form: Pick<LeadFlowForm, 'name' | 'description' | 'purpose'> & {
+    systemKey?: string | null;
+    isCode2CrestOnboarding?: boolean;
     fields: LeadFlowFormField[];
   };
   company: {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { FormField } from '@prisma/client';
 import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
-import { slugify } from '../services/forms.service.js';
+import { sanitizeSubmissionValues, slugify } from '../services/forms.service.js';
 import {
   FormSubmissionValidationError,
   validateSubmissionValues,
@@ -53,6 +53,30 @@ describe('forms foundation', () => {
     expect(() => validateSubmissionValues(fields, { email: 'hello@example.com', companyId: 'wrong-company' })).toThrow(
       FormSubmissionValidationError,
     );
+  });
+
+  it('sanitizes public submission values without losing false or zero', () => {
+    const fields = [
+      { id: 'field_name', key: 'name' },
+      { id: 'field_notes', key: 'notes' },
+      { id: 'field_has_logo', key: 'hasLogo' },
+      { id: 'field_pages', key: 'estimatedPages' },
+      { id: 'field_options', key: 'selectedOptions' },
+    ];
+
+    expect(
+      sanitizeSubmissionValues(fields, {
+        name: 'Code2Crest',
+        notes: undefined,
+        hasLogo: false,
+        estimatedPages: 0,
+        selectedOptions: [],
+      }),
+    ).toEqual([
+      { fieldId: 'field_name', value: 'Code2Crest' },
+      { fieldId: 'field_has_logo', value: false },
+      { fieldId: 'field_pages', value: 0 },
+    ]);
   });
 
   it('declares required forms activity types', () => {

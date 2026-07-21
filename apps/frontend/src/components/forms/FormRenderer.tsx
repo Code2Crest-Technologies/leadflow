@@ -8,6 +8,7 @@ interface FormRendererProps {
   errors?: Record<string, string>;
   preview?: boolean;
   disabled?: boolean;
+  layout?: 'stack' | 'grid';
   onChange: (key: string, value: unknown) => void;
 }
 
@@ -15,7 +16,7 @@ function stringValue(value: unknown) {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
-export function FormRenderer({ fields, values, errors = {}, preview = false, disabled = false, onChange }: FormRendererProps) {
+export function FormRenderer({ fields, values, errors = {}, preview = false, disabled = false, layout = 'stack', onChange }: FormRendererProps) {
   if (fields.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] p-6 text-center text-[var(--color-muted)]">
@@ -25,7 +26,7 @@ export function FormRenderer({ fields, values, errors = {}, preview = false, dis
   }
 
   return (
-    <div className="space-y-5">
+    <div className={layout === 'grid' ? 'grid gap-5 md:grid-cols-2' : 'space-y-5'}>
       {fields.map((field) => {
         const error = errors[field.key];
         const commonLabel = (
@@ -36,7 +37,7 @@ export function FormRenderer({ fields, values, errors = {}, preview = false, dis
         );
 
         return (
-          <label key={field.id || field.key} className="block">
+          <label key={field.id || field.key} className={layout === 'grid' && field.type === 'TEXTAREA' ? 'block md:col-span-2' : 'block'}>
             {commonLabel}
             {field.type === 'TEXTAREA' ? (
               <textarea
@@ -91,7 +92,7 @@ export function FormRenderer({ fields, values, errors = {}, preview = false, dis
                 placeholder={field.placeholder || ''}
                 value={stringValue(values[field.key])}
                 disabled={disabled || preview}
-                onChange={(event) => onChange(field.key, field.type === 'NUMBER' ? Number(event.target.value) : event.target.value)}
+                onChange={(event) => onChange(field.key, field.type === 'NUMBER' ? (event.target.value === '' ? '' : Number(event.target.value)) : event.target.value)}
               />
             )}
             {field.helpText && <span className="mt-1 block text-xs text-[var(--color-muted)]">{field.helpText}</span>}

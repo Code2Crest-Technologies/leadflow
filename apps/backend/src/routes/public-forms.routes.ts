@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { createRateLimiter } from '../middleware/security.js';
+import { isCode2CrestClientOnboarding } from '../services/clientOnboarding.service.js';
 import {
   FormSubmissionValidationError,
   FormsError,
@@ -8,6 +9,7 @@ import {
   publicSubmissionSchema,
   submitPublicForm,
 } from '../services/forms.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -30,6 +32,8 @@ function publicFormPayload(link: Awaited<ReturnType<typeof getPublicFormByToken>
       name: link.form.name,
       description: link.form.description,
       purpose: link.form.purpose,
+      systemKey: link.form.systemKey,
+      isCode2CrestOnboarding: isCode2CrestClientOnboarding(link.form.systemKey),
       fields: link.form.fields.map((field) => ({
         key: field.key,
         label: field.label,
@@ -87,7 +91,8 @@ router.post(
       if (error instanceof FormsError) {
         return res.status(error.statusCode).json({ success: false, code: error.code, error: error.message });
       }
-      return res.status(500).json({ success: false, error: 'Failed to submit form' });
+      logger.error({ error }, 'Public form submission failed');
+      return res.status(500).json({ success: false, error: 'Unable to submit the form right now. Please try again.' });
     }
   },
 );
