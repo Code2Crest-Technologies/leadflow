@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/permissions.js';
+import { testWhatsAppConnection } from '../services/whatsappCloud.service.js';
 
 const router = Router();
 
@@ -88,7 +89,7 @@ function getBackendPublicUrl() {
 }
 
 function buildWebhookUrl() {
-  return `${getBackendPublicUrl()}/api/webhook`;
+  return `${getBackendPublicUrl()}/api/webhooks/meta/whatsapp`;
 }
 
 router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
@@ -105,11 +106,11 @@ router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
         },
       }),
       prisma.integration.findMany({
-        where: { companyId: req.auth!.companyId, type: { in: ['whatsapp_business', 'meta_business'] } },
+        where: { companyId: req.auth!.companyId, type: { in: ['whatsapp_business', 'META_WHATSAPP', 'meta_business'] } },
       }),
     ]);
 
-    const whatsapp = integrations.find((item) => item.type === 'whatsapp_business');
+    const whatsapp = integrations.find((item) => item.type === 'META_WHATSAPP') || integrations.find((item) => item.type === 'whatsapp_business');
     const meta = integrations.find((item) => item.type === 'meta_business');
     const whatsappConfig = toConfig(whatsapp?.config);
     const metaConfig = toConfig(meta?.config);
@@ -119,12 +120,15 @@ router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
       data: {
         whatsapp: {
           whatsappBusinessAccountId:
-            company?.whatsappBusinessAccountId || whatsappConfig.whatsappBusinessAccountId || null,
-          phoneNumberId: company?.whatsappPhoneNumber || whatsappConfig.phoneNumberId || null,
+            whatsapp?.whatsappBusinessAccountId || company?.whatsappBusinessAccountId || whatsappConfig.whatsappBusinessAccountId || null,
+          phoneNumberId: whatsapp?.phoneNumberId || company?.whatsappPhoneNumber || whatsappConfig.phoneNumberId || null,
+          displayPhoneNumber: whatsapp?.displayPhoneNumber || null,
+          businessDisplayName: whatsapp?.businessDisplayName || null,
           accessToken: maskSecret(company?.whatsappAccessToken || whatsapp?.accessToken),
           verifyToken: maskSecret(whatsappConfig.verifyToken),
           webhookUrl: buildWebhookUrl(),
-          status: whatsapp?.status || (company?.whatsappAccessToken ? 'configured' : 'not_configured'),
+          lastWebhookAt: whatsapp?.lastWebhookAt || null,
+          status: whatsapp?.status || (company?.whatsappAccessToken ? 'CONNECTED' : 'NOT_CONFIGURED'),
         },
         meta: {
           metaAppId: metaConfig.metaAppId || null,
@@ -150,12 +154,10 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response) => {
     const payload = integrationsSchema.parse(req.body);
 
     const [existingWhatsapp, existingMeta] = await Promise.all([
-      prisma.integration.findUnique({
+      prisma.integration.findFirst({
         where: {
-          companyId_type: {
-            companyId: req.auth!.companyId,
-            type: 'whatsapp_business',
-          },
+          companyId: req.auth!.companyId,
+          type: { in: ['META_WHATSAPP', 'whatsapp_business'] },
         },
       }),
       prisma.integration.findUnique({
@@ -199,21 +201,28 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response) => {
         where: {
           companyId_type: {
             companyId: req.auth!.companyId,
-            type: 'whatsapp_business',
+            type: 'META_WHATSAPP',
           },
         },
         create: {
           companyId: req.auth!.companyId,
-          type: 'whatsapp_business',
-          name: 'WhatsApp Business API',
+          type: 'META_WHATSAPP',
+          provider: 'META',
+          name: 'Meta WhatsApp Cloud API',
           accessToken,
+          whatsappBusinessAccountId: emptyToNull(payload.whatsapp.whatsappBusinessAccountId),
+          phoneNumberId: emptyToNull(payload.whatsapp.phoneNumberId),
           config: whatsappConfig as Prisma.InputJsonValue,
-          status: accessToken ? 'configured' : 'not_configured',
+          status: accessToken ? 'CONNECTED' : 'NOT_CONFIGURED',
+          connectedAt: accessToken ? new Date() : null,
         },
         update: {
           accessToken,
+          whatsappBusinessAccountId: emptyToNull(payload.whatsapp.whatsappBusinessAccountId),
+          phoneNumberId: emptyToNull(payload.whatsapp.phoneNumberId),
           config: whatsappConfig as Prisma.InputJsonValue,
-          status: accessToken ? 'configured' : 'not_configured',
+          status: accessToken ? 'CONNECTED' : 'NOT_CONFIGURED',
+          connectedAt: accessToken ? new Date() : undefined,
         },
       }),
       prisma.integration.upsert({
@@ -252,6 +261,15 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ success: false, error: 'Validation error', details: error.errors });
     }
     res.status(500).json({ success: false, error: 'Failed to update integration settings' });
+  }
+});
+
+router.post('/whatsapp/test-connection', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await testWhatsAppConnection(req.auth!);
+    res.json({ success: true, data });
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to test WhatsApp connection' });
   }
 });
 

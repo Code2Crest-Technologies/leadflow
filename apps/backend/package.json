@@ -18,7 +18,8 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "node prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "bootstrap:code2crest-onboarding": "tsx src/scripts/ensure-code2crest-onboarding.ts"
+    "bootstrap:code2crest-onboarding": "tsx src/scripts/ensure-code2crest-onboarding.ts",
+    "cron:client-onboarding-reminders": "tsx src/scripts/run-client-onboarding-reminders.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.4.1",

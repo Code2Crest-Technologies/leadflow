@@ -64,6 +64,87 @@ export const LeadService = {
   async getDealTimeline(id: string) {
     return (await apiClient.get(`/api/deals/${id}/timeline`)).data.data;
   },
+  async getDealKickoffReadiness(id: string) {
+    return (await apiClient.get(`/api/deals/${id}/project-readiness`)).data.data;
+  },
+  async createProjectFromDeal(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/deals/${id}/project`, payload || {})).data.data;
+  },
+  async getProjects(params?: Record<string, unknown>) {
+    return (await apiClient.get('/api/projects', { params })).data.data;
+  },
+  async getProject(id: string) {
+    return (await apiClient.get(`/api/projects/${id}`)).data.data;
+  },
+  async updateProject(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.patch(`/api/projects/${id}`, payload)).data.data;
+  },
+  async assignProject(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.patch(`/api/projects/${id}/assignment`, payload)).data.data;
+  },
+  async upsertProjectMember(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.post(`/api/projects/${id}/members`, payload)).data.data;
+  },
+  async removeProjectMember(id: string, memberId: string) {
+    return (await apiClient.delete(`/api/projects/${id}/members/${memberId}`)).data.data;
+  },
+  async transitionProjectStatus(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.patch(`/api/projects/${id}/status`, payload)).data.data;
+  },
+  async getProjectHandoff(id: string) {
+    return (await apiClient.get(`/api/projects/${id}/handoff`)).data.data;
+  },
+  async getDocumentTemplates() {
+    return (await apiClient.get('/api/documents/templates')).data.data;
+  },
+  async createDocumentTemplate(payload: Record<string, unknown>) {
+    return (await apiClient.post('/api/documents/templates', payload)).data.data;
+  },
+  async cloneDocumentTemplate(id: string) {
+    return (await apiClient.post(`/api/documents/templates/${id}/clone`)).data.data;
+  },
+  async getDocuments(params?: Record<string, unknown>) {
+    return (await apiClient.get('/api/documents', { params })).data.data;
+  },
+  async getDocument(id: string) {
+    return (await apiClient.get(`/api/documents/${id}`)).data.data;
+  },
+  async createDocument(payload: Record<string, unknown>) {
+    return (await apiClient.post('/api/documents', payload)).data.data;
+  },
+  async updateDocument(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.patch(`/api/documents/${id}`, payload)).data.data;
+  },
+  async createDocumentRevision(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/documents/${id}/revisions`, payload || {})).data.data;
+  },
+  async markDocumentReady(id: string) {
+    return (await apiClient.post(`/api/documents/${id}/ready`)).data.data;
+  },
+  async sendDocument(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/documents/${id}/send`, payload || {})).data.data;
+  },
+  async createDocumentPublicLink(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/documents/${id}/link`, payload || {})).data.data;
+  },
+  async cancelDocument(id: string) {
+    return (await apiClient.post(`/api/documents/${id}/cancel`)).data.data;
+  },
+  async downloadDocumentPdf(id: string) {
+    return (await apiClient.get(`/api/documents/${id}/pdf`, { responseType: 'blob' })).data;
+  },
+  async getPublicDocument(token: string) {
+    return (await apiClient.get(`/api/public/documents/${token}`)).data.data;
+  },
+  async acceptPublicDocument(token: string, payload: Record<string, unknown>) {
+    return (await apiClient.post(`/api/public/documents/${token}/accept`, payload)).data.data;
+  },
+  async rejectPublicDocument(token: string, payload: Record<string, unknown>) {
+    return (await apiClient.post(`/api/public/documents/${token}/reject`, payload)).data.data;
+  },
+  async downloadPublicDocumentPdf(token: string) {
+    return (await apiClient.get(`/api/public/documents/${token}/pdf`, { responseType: 'blob' })).data;
+  },
   async createDeal(payload: Record<string, unknown>) {
     return (await apiClient.post('/api/deals', payload)).data.data;
   },
@@ -78,6 +159,18 @@ export const LeadService = {
   },
   async regenerateClientOnboarding(id: string) {
     return (await apiClient.post(`/api/deals/${id}/onboarding/regenerate`)).data.data;
+  },
+  async createCopyableClientOnboardingLink(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/copy-link`)).data.data;
+  },
+  async sendClientOnboardingEmail(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/send-email`)).data.data;
+  },
+  async shareClientOnboardingWhatsApp(id: string) {
+    return (await apiClient.post(`/api/deals/${id}/onboarding/share-whatsapp`)).data.data;
+  },
+  async downloadClientOnboardingPdf(id: string) {
+    return (await apiClient.get(`/api/deals/${id}/onboarding/pdf`, { responseType: 'blob' })).data;
   },
   async markClientOnboardingSent(id: string) {
     return (await apiClient.post(`/api/deals/${id}/onboarding/mark-sent`)).data.data;
@@ -135,6 +228,36 @@ export const LeadService = {
   },
   async updateInvoicePayment(id: string, payload: { amountReceived: number; paymentDate: string; notes?: string }) {
     return (await apiClient.patch(`/api/invoices/${id}/payment`, payload)).data.data;
+  },
+  async getBillingProfile() {
+    return (await apiClient.get('/api/invoices/billing/profile')).data.data;
+  },
+  async updateBillingProfile(payload: Record<string, unknown>) {
+    return (await apiClient.patch('/api/invoices/billing/profile', payload)).data.data;
+  },
+  async finalizeInvoice(id: string) {
+    return (await apiClient.post(`/api/invoices/${id}/finalize`)).data.data;
+  },
+  async sendInvoice(id: string) {
+    return (await apiClient.post(`/api/invoices/${id}/send`)).data.data;
+  },
+  async createInvoicePublicLink(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/invoices/${id}/link`, payload || {})).data.data;
+  },
+  async createRazorpayInvoiceOrder(id: string, payload?: Record<string, unknown>) {
+    return (await apiClient.post(`/api/invoices/${id}/payment/razorpay`, payload || {})).data.data;
+  },
+  async verifyRazorpayInvoicePayment(id: string, payload: Record<string, unknown>) {
+    return (await apiClient.post(`/api/invoices/${id}/payment/razorpay/verify`, payload)).data.data;
+  },
+  async downloadReceiptPdf(invoiceId: string, receiptId: string) {
+    return (await apiClient.get(`/api/invoices/${invoiceId}/receipts/${receiptId}/pdf`, { responseType: 'blob' })).data;
+  },
+  async getPublicInvoice(token: string) {
+    return (await apiClient.get(`/api/public/invoices/${token}`)).data.data;
+  },
+  async downloadPublicInvoicePdf(token: string) {
+    return (await apiClient.get(`/api/public/invoices/${token}/pdf`, { responseType: 'blob' })).data;
   },
   async updateInvoiceStatus(id: string, status: string) {
     return (await apiClient.patch(`/api/invoices/${id}`, { status })).data.data;

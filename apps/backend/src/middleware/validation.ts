@@ -22,7 +22,12 @@ export const validateWebhookSignature = (
       return;
     }
 
-    const appSecret = process.env.WHATSAPP_APP_SECRET;
+    const appSecret = process.env.META_WHATSAPP_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+    if (!appSecret) {
+      logger.warn('Webhook app secret is not configured');
+      res.status(503).json({ error: 'Webhook signature validation unavailable' });
+      return;
+    }
     const payload = (req as any).rawBody || JSON.stringify(req.body);
 
     // Generate HMAC
@@ -34,7 +39,10 @@ export const validateWebhookSignature = (
     const expectedSignature = `sha256=${hash}`;
 
     // Compare signatures using timing-safe comparison
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    if (
+      signature.length !== expectedSignature.length ||
+      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    ) {
       logger.warn('Invalid webhook signature');
       res.status(403).json({ error: 'Invalid signature' });
       return;
@@ -51,16 +59,5 @@ export const validateWebhookSignature = (
  * Middleware to capture raw body for webhook signature verification
  */
 export const captureRawBody = (req: Request, res: Response, next: NextFunction) => {
-  if (req.path.includes('/webhook')) {
-    let rawBody = '';
-    req.on('data', (chunk) => {
-      rawBody += chunk.toString('utf8');
-    });
-    req.on('end', () => {
-      (req as any).rawBody = rawBody;
-      next();
-    });
-  } else {
-    next();
-  }
+  next();
 };

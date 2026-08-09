@@ -37,6 +37,26 @@ export const MessageService = {
     return data.data;
   },
 
+  async sendWhatsAppText(conversationId: string, text: string) {
+    const { data } = await apiClient.post(`/api/conversations/${conversationId}/messages`, { text });
+    return data.data;
+  },
+
+  async sendWhatsAppTemplate(conversationId: string, templateId: string, variables: Record<string, string>) {
+    const { data } = await apiClient.post(`/api/conversations/${conversationId}/messages/template`, { templateId, variables });
+    return data.data;
+  },
+
+  async linkConversationDeal(conversationId: string, dealId: string | null) {
+    const { data } = await apiClient.patch(`/api/conversations/${conversationId}/deal`, { dealId });
+    return data.data;
+  },
+
+  async resolveConversation(conversationId: string) {
+    const { data } = await apiClient.post(`/api/conversations/${conversationId}/resolve`);
+    return data.data;
+  },
+
   async assignConversation(conversationId: string, assignedToId: string | null) {
     const { data } = await apiClient.patch(`/api/conversations/${conversationId}/assign`, { assignedToId });
     return data.data;

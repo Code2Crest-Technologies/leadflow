@@ -27,6 +27,7 @@ const nav = [
   { label: 'Contacts', icon: UsersIcon, href: '/dashboard/contacts', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Messages', icon: MessageSquareIcon, href: '/dashboard/messages', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Pipeline', icon: KanbanSquareIcon, href: '/dashboard/pipeline', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
+  { label: 'Projects', icon: KanbanSquareIcon, href: '/dashboard/projects', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Tasks', icon: CheckSquareIcon, href: '/dashboard/tasks', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Quotations', icon: FileTextIcon, href: '/dashboard/quotations', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
   { label: 'Invoices', icon: ReceiptIcon, href: '/dashboard/invoices', roles: ['ADMIN', 'MANAGER', 'AGENT', 'SALES'] },
@@ -35,6 +36,7 @@ const nav = [
   { label: 'Team', icon: UserCogIcon, href: '/dashboard/team', roles: ['ADMIN'] },
   { label: 'Company', icon: Building2Icon, href: '/dashboard/company', roles: ['ADMIN'] },
   { label: 'Integrations', icon: CreditCardIcon, href: '/dashboard/integrations', roles: ['ADMIN'] },
+  { label: 'Doc Templates', icon: FileTextIcon, href: '/dashboard/settings/document-templates', roles: ['ADMIN'] },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

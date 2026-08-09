@@ -3,6 +3,7 @@ import { prisma } from '../config/database.js';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { getMessageWhere, getTaskWhere } from '../middleware/permissions.js';
 import { getAnalyticsData } from '../services/analytics.service.js';
+import { getClientOnboardingMetrics } from '../services/clientOnboarding.service.js';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
       recentActivity,
       recentMessages,
       analytics,
+      onboardingMetrics,
     ] =
       await Promise.all([
         prisma.contact.count({ where: { companyId } }),
@@ -74,6 +76,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
           },
         }),
         getAnalyticsData(req.auth!),
+        getClientOnboardingMetrics(req.auth!).catch(() => null),
       ]);
 
     res.json({
@@ -92,6 +95,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
         upcomingTasks,
         recentActivity,
         recentMessages,
+        onboardingMetrics,
       },
     });
   } catch (error) {

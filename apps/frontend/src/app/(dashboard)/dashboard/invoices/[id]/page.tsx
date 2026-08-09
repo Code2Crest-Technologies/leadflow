@@ -36,6 +36,7 @@ export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -109,6 +110,63 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  async function finalizeInvoice() {
+    if (!invoice) return;
+    setMutating(true);
+    setError("");
+    try {
+      await LeadService.finalizeInvoice(invoice.id);
+      await load();
+    } catch {
+      setError("Could not finalize invoice.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function sendInvoice() {
+    if (!invoice) return;
+    setMutating(true);
+    setError("");
+    try {
+      const data = await LeadService.sendInvoice(invoice.id);
+      setPublicLink(data.publicUrl || "");
+      await load();
+    } catch {
+      setError("Could not send invoice.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function createPublicLink() {
+    if (!invoice) return;
+    setMutating(true);
+    setError("");
+    try {
+      const data = await LeadService.createInvoicePublicLink(invoice.id);
+      setPublicLink(data.url || "");
+      if (data.url) await navigator.clipboard?.writeText(data.url);
+    } catch {
+      setError("Could not create public invoice link.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function downloadReceipt(receiptId: string, receiptNumber: string) {
+    if (!invoice) return;
+    setMutating(true);
+    setError("");
+    try {
+      downloadBlob(await LeadService.downloadReceiptPdf(invoice.id, receiptId), `${receiptNumber}.pdf`);
+    } catch {
+      setError("Could not download receipt.");
+    } finally {
+      setMutating(false);
+    }
+  }
+
   if (loading) return <main className="mx-auto max-w-[1440px] px-5 py-6 text-sm text-slate-500 lg:px-6">Loading invoice...</main>;
 
   if (!invoice) {
@@ -132,6 +190,9 @@ export default function InvoiceDetailPage() {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={downloadPdf} className="btn-secondary" disabled={mutating}><DownloadIcon className="h-4 w-4" />Download PDF</button>
           <button type="button" onClick={() => setIsPaymentOpen(true)} className="btn-secondary" disabled={mutating || invoice.status === "CANCELLED" || Number(invoice.balanceDue || 0) <= 0}><CreditCardIcon className="h-4 w-4" />Record Payment</button>
+          <button type="button" onClick={finalizeInvoice} className="btn-secondary" disabled={mutating || invoice.status !== "DRAFT"}><CheckCircleIcon className="h-4 w-4" />Finalize</button>
+          <button type="button" onClick={sendInvoice} className="btn-secondary" disabled={mutating || invoice.status === "CANCELLED"}>Send Invoice</button>
+          <button type="button" onClick={createPublicLink} className="btn-secondary" disabled={mutating || invoice.status === "CANCELLED"}>Copy Public Link</button>
           <button type="button" onClick={markSent} className="btn-secondary" disabled={mutating || invoice.status !== "DRAFT"}><CheckCircleIcon className="h-4 w-4" />Mark Sent</button>
           <button type="button" onClick={cancelInvoice} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 disabled:opacity-50" disabled={mutating || invoice.status === "CANCELLED"}>Cancel Invoice</button>
           {invoice.contact && (
@@ -148,6 +209,11 @@ export default function InvoiceDetailPage() {
       </header>
 
       {error && <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {publicLink && (
+        <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          Public invoice link copied: <span className="font-semibold">{publicLink}</span>
+        </p>
+      )}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-4">
         {[
@@ -203,11 +269,42 @@ export default function InvoiceDetailPage() {
             </div>
             <button type="button" onClick={() => setIsPaymentOpen(true)} className="mt-4 w-full btn-primary" disabled={mutating || invoice.status === "CANCELLED" || Number(invoice.balanceDue || 0) <= 0}><CreditCardIcon className="h-4 w-4" />Record Payment</button>
           </div>
+          <div className="card">
+            <h2 className="text-lg font-bold text-slate-900">Payment History</h2>
+            <div className="mt-4 space-y-3">
+              {(invoice.payments || []).length === 0 && (
+                <p className="rounded-xl bg-[var(--color-bg)] p-3 text-sm text-slate-500">No payments recorded yet.</p>
+              )}
+              {(invoice.payments || []).map((payment) => (
+                <div key={payment.id} className="rounded-xl border border-[var(--color-border)] p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-slate-950">{formatCurrency(payment.amount)}</p>
+                      <p className="text-slate-500">{payment.method.replace("_", " ")} - {payment.status}</p>
+                      <p className="text-xs text-slate-400">{payment.paidAt ? new Date(payment.paidAt).toLocaleDateString("en-IN") : new Date(payment.createdAt).toLocaleDateString("en-IN")}</p>
+                    </div>
+                    {(payment.receipts || []).map((receipt) => (
+                      <button
+                        key={receipt.id}
+                        type="button"
+                        onClick={() => downloadReceipt(receipt.id, receipt.receiptNumber)}
+                        className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs font-semibold text-slate-700"
+                        disabled={mutating}
+                      >
+                        Receipt
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="card text-sm text-slate-600">
             <h2 className="text-lg font-bold text-slate-900">Details</h2>
             <p className="mt-3">Issue date: {new Date(invoice.issueDate).toLocaleDateString("en-IN")}</p>
             <p>Due date: {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Not set"}</p>
             <p>Payment terms: {invoice.paymentTerms || "On approval"}</p>
+            {invoice.project && <p>Project: {invoice.project.name}</p>}
             {invoice.quotation && <p>Source quotation: {invoice.quotation.quoteNumber}</p>}
           </div>
         </aside>

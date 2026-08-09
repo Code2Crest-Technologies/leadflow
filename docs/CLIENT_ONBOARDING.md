@@ -11,6 +11,9 @@ Set the Code2Crest LeadFlow company id server-side:
 ```bash
 CODE2CREST_LEADFLOW_COMPANY_ID=replace-with-code2crest-leadflow-company-id
 FRONTEND_URL=https://leadflow.code2crest.com
+CODE2CREST_ONBOARDING_BASE_URL=https://www.code2crest.com/onboarding
+RESEND_API_KEY=replace-with-resend-api-key
+RESEND_FROM="Code2Crest Technologies <hello@code2crest.com>"
 ```
 
 Never pass or trust this company id from the browser.
@@ -30,7 +33,7 @@ The command is idempotent. It creates or safely updates the `CODE2CREST_CLIENT_O
 1. Move a Code2Crest deal to `WON`.
 2. Open the deal detail page and use the `Client Onboarding` tab.
 3. Click `Start Client Onboarding` to create a 30-day, single-use public form link.
-4. Copy the link and send it to the client.
+4. Send the link by Email, copy it, or share it through WhatsApp.
 5. Client completes the guided multi-step public onboarding form without a LeadFlow account.
 6. LeadFlow links the submission to the existing contact and deal.
 7. Internal users mark the onboarding as `UNDER_REVIEW` and then `COMPLETED`.
@@ -77,7 +80,76 @@ This prevents Prisma runtime failures caused by attempting to store `value: unde
 - Internal review can move it to `UNDER_REVIEW`.
 - Completion moves it to `COMPLETED`.
 
+## Automation
+
+Phase 6 adds operational actions to the Deal onboarding tab:
+
+- `Send Client Onboarding` creates a fresh secure onboarding URL and sends a branded Code2Crest email through Resend when `RESEND_API_KEY` is configured.
+- `Copy Link` creates a fresh copyable URL and writes it to the browser clipboard.
+- `Share via WhatsApp` creates a fresh secure URL and opens `wa.me` with a prefilled Code2Crest message.
+- `Regenerate Link` invalidates old active tokens and creates a fresh token.
+- `Download Onboarding PDF` exports saved responses as a sectioned PDF generated from database values.
+
+Raw public tokens are never stored. If an older link needs to be copied after a page reload, LeadFlow invalidates the previous active token and creates a fresh one.
+
+## Reminder flow
+
+Reminder history is stored in `ClientOnboardingReminder`.
+
+Default reminder days:
+
+- 3 days
+- 7 days
+- 14 days
+
+Reminders run only for deals with `onboardingStatus = SENT` or `IN_PROGRESS` and no onboarding submission. A unique database constraint on `companyId + dealId + reminderDay` prevents duplicate reminders.
+
+Run reminders from a scheduled job instead of the web application request cycle. Recommended production schedule:
+
+```cron
+0 9 * * *
+```
+
+Command:
+
+```bash
+cd apps/backend
+pnpm cron:client-onboarding-reminders
+```
+
+The cron job resolves the configured Code2Crest tenant from `CODE2CREST_LEADFLOW_COMPANY_ID`, finds due reminders, sends only the next unsent reminder day, and records the reminder before the next run can duplicate it.
+
+## Notifications and timeline
+
+LeadFlow logs timeline events for:
+
+- Onboarding link created
+- Onboarding email sent
+- WhatsApp link shared
+- Reminder sent
+- Client opened form
+- Client submitted
+- Review started
+- Completed
+
+On submission, active admins/managers and the deal assignee receive an internal notification email when email delivery is configured. Without email credentials, LeadFlow logs the queued/skipped delivery safely.
+
+## Metrics
+
+The dashboard summary includes Code2Crest onboarding metrics when the current tenant is the configured Code2Crest company:
+
+- Sent
+- In progress
+- Submitted
+- Completed
+- Reminder count
+- Completion percentage
+- Average completion hours
+
 ## Future enhancements
 
 - Secure file uploads for brand assets and project documents.
-- Branded email delivery for onboarding links.
+
+## WhatsApp Automation Integration
+
+Phase 10 adds a WhatsApp automation boundary for onboarding links and reminders. The automation remains off by default per tenant. When enabled, LeadFlow should send approved WhatsApp templates only, using variables such as client name, project name, and the secure onboarding link. Reminders stop once onboarding is submitted or completed.

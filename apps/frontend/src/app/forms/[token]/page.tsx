@@ -294,8 +294,16 @@ export default function PublicFormPage() {
             <p className="text-[var(--color-muted)]">Loading form...</p>
           ) : error && !payload ? (
             <div className="py-12 text-center">
-              <h1 className="text-2xl font-bold">This form link is invalid or has expired.</h1>
-              <p className="mt-2 text-[var(--color-muted)]">Please contact the business that shared this link.</p>
+              <h1 className="text-2xl font-bold">This onboarding link has expired.</h1>
+              <p className="mt-2 text-[var(--color-muted)]">Please request a fresh secure link from the Code2Crest team.</p>
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <a className="btn-primary justify-center" href="mailto:hello@code2crest.com?subject=Request%20new%20onboarding%20link">
+                  Request New Link
+                </a>
+                <a className="btn-secondary justify-center" href="https://www.code2crest.com/contact" target="_blank" rel="noreferrer">
+                  Contact Code2Crest
+                </a>
+              </div>
             </div>
           ) : submitted ? (
             <div className="py-12 text-center">

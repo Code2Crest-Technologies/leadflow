@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import {
   CODE2CREST_CLIENT_ONBOARDING_SYSTEM_KEY,
+  buildWhatsAppOnboardingShare,
   code2crestOnboardingFields,
   getCode2CrestOnboardingVisibleFieldKeys,
 } from '../services/clientOnboarding.service.js';
@@ -29,6 +30,10 @@ describe('Code2Crest client onboarding foundation', () => {
   it('declares onboarding activity types for the deal timeline', () => {
     expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_LINK_CREATED).toBe('CLIENT_ONBOARDING_LINK_CREATED');
     expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_SENT).toBe('CLIENT_ONBOARDING_SENT');
+    expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_EMAIL_SENT).toBe('CLIENT_ONBOARDING_EMAIL_SENT');
+    expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_WHATSAPP_SHARED).toBe('CLIENT_ONBOARDING_WHATSAPP_SHARED');
+    expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_REMINDER_SENT).toBe('CLIENT_ONBOARDING_REMINDER_SENT');
+    expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_FORM_OPENED).toBe('CLIENT_ONBOARDING_FORM_OPENED');
     expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_SUBMITTED).toBe('CLIENT_ONBOARDING_SUBMITTED');
     expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_REVIEW_STARTED).toBe('CLIENT_ONBOARDING_REVIEW_STARTED');
     expect(ACTIVITY_TYPES.CLIENT_ONBOARDING_COMPLETED).toBe('CLIENT_ONBOARDING_COMPLETED');
@@ -65,5 +70,31 @@ describe('Code2Crest client onboarding foundation', () => {
     expect(appKeys.has('estimatedPages')).toBe(false);
     expect(maintenanceKeys.has('issueSummary')).toBe(true);
     expect(maintenanceKeys.has('estimatedPages')).toBe(false);
+  });
+
+  it('generates an encoded WhatsApp onboarding share URL', () => {
+    const share = buildWhatsAppOnboardingShare({
+      clientName: 'Barath Rahav',
+      phone: '+91 9987654321',
+      onboardingUrl: 'https://www.code2crest.com/onboarding/token-123',
+    });
+
+    expect(share.url).toContain('https://wa.me/919987654321?text=');
+    expect(decodeURIComponent(share.url)).toContain('Please complete');
+    expect(share.message).toContain('https://www.code2crest.com/onboarding/token-123');
+  });
+
+  it('records reminder history with a duplicate-prevention constraint', () => {
+    const migration = readFileSync('prisma/migrations/20260729100000_client_onboarding_automation/migration.sql', 'utf8');
+    const packageJson = readFileSync('package.json', 'utf8');
+    const routes = readFileSync('src/routes/deals.routes.ts', 'utf8');
+    const service = readFileSync('src/services/clientOnboarding.service.ts', 'utf8');
+
+    expect(migration).toContain('CREATE TABLE "ClientOnboardingReminder"');
+    expect(migration).toContain('"reminderDay" INTEGER NOT NULL');
+    expect(migration).toContain('ClientOnboardingReminder_companyId_dealId_reminderDay_key');
+    expect(packageJson).toContain('cron:client-onboarding-reminders');
+    expect(routes).not.toContain('onboarding/reminders/run');
+    expect(service).toContain("onboardingStatus: { in: ['SENT', 'IN_PROGRESS'] }");
   });
 });

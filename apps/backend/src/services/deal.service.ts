@@ -4,6 +4,7 @@ import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import { getDealWhere } from '../middleware/permissions.js';
 import { createActivityLog } from './activityLog.service.js';
 import { getDealOnboardingPanel } from './clientOnboarding.service.js';
+import { getKickoffReadiness } from './projectKickoff.service.js';
 
 export const dealSchema = z.object({
   contactId: z.string().min(1),
@@ -178,6 +179,15 @@ export async function getDealWorkspace(auth: AuthContext, dealId: string) {
         include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
         orderBy: { createdAt: 'desc' },
       },
+      project: {
+        include: {
+          projectManager: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      },
+      documents: {
+        include: { currentVersion: true },
+        orderBy: { updatedAt: 'desc' },
+      },
     },
   });
 
@@ -185,7 +195,7 @@ export async function getDealWorkspace(auth: AuthContext, dealId: string) {
     return null;
   }
 
-  const { contact, tasks, quotations, activityLogs, notes, ...dealData } = deal;
+  const { contact, tasks, quotations, activityLogs, notes, project, documents, ...dealData } = deal;
 
   return {
     deal: dealData,
@@ -195,6 +205,9 @@ export async function getDealWorkspace(auth: AuthContext, dealId: string) {
     activities: activityLogs,
     notes,
     onboarding: await getDealOnboardingPanel(auth, deal.id),
+    project,
+    documents,
+    kickoffReadiness: await getKickoffReadiness(auth, deal.id),
   };
 }
 

@@ -15,6 +15,7 @@ import contactGroupRoutes from './routes/contact-groups.routes.js';
 import messageRoutes from './routes/messages.routes.js';
 import conversationRoutes from './routes/conversations.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
+import metaWebhookRoutes from './routes/meta-webhooks.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import dealsRoutes from './routes/deals.routes.js';
@@ -22,6 +23,7 @@ import noteRoutes from './routes/note.routes.js';
 import taskRoutes from './routes/tasks.routes.js';
 import quotationRoutes from './routes/quotations.routes.js';
 import invoiceRoutes from './routes/invoices.routes.js';
+import publicInvoiceRoutes from './routes/public-invoices.routes.js';
 import exportRoutes from './routes/export.routes.js';
 import userRoutes from './routes/users.routes.js';
 import companyRoutes from './routes/company.routes.js';
@@ -29,6 +31,9 @@ import integrationRoutes from './routes/integrations.routes.js';
 import internalRoutes from './routes/internal.routes.js';
 import formsRoutes from './routes/forms.routes.js';
 import publicFormsRoutes from './routes/public-forms.routes.js';
+import projectRoutes from './routes/projects.routes.js';
+import documentRoutes from './routes/documents.routes.js';
+import publicDocumentRoutes from './routes/public-documents.routes.js';
 
 const app: Express = express();
 const uploadLimit = process.env.UPLOAD_MAX_BODY_SIZE || '10mb';
@@ -44,7 +49,15 @@ app.use(captureRawBody);
 app.use(securityHeaders);
 
 // Body parsing
-app.use(express.json({ limit: uploadLimit }));
+app.use(express.json({
+  limit: uploadLimit,
+  verify: (req, _res, buf) => {
+    const request = req as Request & { rawBody?: string; path?: string; url?: string };
+    if ((request.path || request.url || '').includes('/webhook')) {
+      request.rawBody = buf.toString('utf8');
+    }
+  },
+}));
 app.use(express.urlencoded({ limit: uploadLimit, extended: true }));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
   dotfiles: 'deny',
@@ -116,6 +129,7 @@ app.get('/api', (req: Request, res: Response) => {
       tasks: '/api/tasks',
       quotations: '/api/quotations',
       invoices: '/api/invoices',
+      publicInvoices: '/api/public/invoices',
       exports: '/api/export',
       users: '/api/users',
       company: '/api/company',
@@ -123,8 +137,12 @@ app.get('/api', (req: Request, res: Response) => {
       internal: '/api/internal',
       forms: '/api/forms',
       publicForms: '/api/public/forms',
+      projects: '/api/projects',
+      documents: '/api/documents',
+      publicDocuments: '/api/public/documents',
       notes: '/api/notes',
       webhook: '/api/webhook',
+      metaWhatsAppWebhook: '/api/webhooks/meta/whatsapp',
     },
   });
 });
@@ -136,12 +154,14 @@ app.use('/api/contact-groups', contactGroupRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/webhooks/meta', metaWebhookRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/deals', dealsRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/public/invoices', publicInvoiceRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/company', companyRoutes);
@@ -149,6 +169,9 @@ app.use('/api/integrations', integrationRoutes);
 app.use('/api/internal', internalRoutes);
 app.use('/api/forms', formsRoutes);
 app.use('/api/public/forms', publicFormsRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/public/documents', publicDocumentRoutes);
 app.use('/api/notes', noteRoutes);
 
 // ============ ERROR HANDLING ============

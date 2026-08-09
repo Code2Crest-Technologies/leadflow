@@ -36,6 +36,9 @@ export default function ChatWindow({ conversation, currentUserId }: ChatWindowPr
   const bottomRef = useRef<HTMLDivElement>(null);
   const { socket } = useWebSocket();
   const platform = getMessagePlatform(conversation.channel);
+  const serviceWindowEndsAt = conversation.serviceWindowEndsAt ? new Date(conversation.serviceWindowEndsAt) : null;
+  const isWhatsApp = conversation.channel === "WHATSAPP";
+  const serviceWindowOpen = !isWhatsApp || (serviceWindowEndsAt ? serviceWindowEndsAt > new Date() : false);
 
   useEffect(() => {
     let active = true;
@@ -101,16 +104,18 @@ export default function ChatWindow({ conversation, currentUserId }: ChatWindowPr
     setError("");
     setIsSending(true);
     try {
-      const message = (await MessageService.sendMessage({
-        conversationId: conversation.id,
-        contactId: conversation.contactId,
-        content: trimmed,
-        messageType: "TEXT",
-      })) as Message;
+      const message = (isWhatsApp
+        ? await MessageService.sendWhatsAppText(conversation.id, trimmed)
+        : await MessageService.sendMessage({
+            conversationId: conversation.id,
+            contactId: conversation.contactId,
+            content: trimmed,
+            messageType: "TEXT",
+          })) as Message;
       setMessages((current) => [...current, message]);
       setContent("");
-    } catch {
-      setError("Could not send message.");
+    } catch (sendError: any) {
+      setError(sendError?.response?.data?.message || "Could not send message.");
     } finally {
       setIsSending(false);
     }
@@ -131,6 +136,11 @@ export default function ChatWindow({ conversation, currentUserId }: ChatWindowPr
       </header>
 
       {error && <p className="mx-4 mt-4 shrink-0 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {isWhatsApp && !serviceWindowOpen && (
+        <p className="mx-4 mt-4 shrink-0 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+          The 24-hour customer service window has closed. Send an approved template to restart the conversation.
+        </p>
+      )}
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[var(--color-bg)] px-6 py-4">
         {isLoading ? (
@@ -178,9 +188,9 @@ export default function ChatWindow({ conversation, currentUserId }: ChatWindowPr
           placeholder="Type a message..."
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          disabled={isSending}
+          disabled={isSending || !serviceWindowOpen}
         />
-        <button type="submit" className="btn-primary" disabled={isSending || !content.trim()}>
+        <button type="submit" className="btn-primary" disabled={isSending || !content.trim() || !serviceWindowOpen}>
           {isSending ? "Sending..." : "Send"}
         </button>
       </form>

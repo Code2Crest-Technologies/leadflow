@@ -5,6 +5,19 @@ import { ACTIVITY_TYPES } from '../constants/activityTypes.js';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { isSalesRole, requireRole } from '../middleware/permissions.js';
 import { createActivityLog } from '../services/activityLog.service.js';
+import {
+  communicationSettingsSchema,
+  conversationDealLinkSchema,
+  getCommunicationSettings,
+  linkConversationDeal,
+  sendWhatsAppTemplate,
+  sendWhatsAppText,
+  testWhatsAppConnection,
+  updateCommunicationSettings,
+  whatsappTemplateSendSchema,
+  whatsappTextSchema,
+  WhatsAppCloudError,
+} from '../services/whatsappCloud.service.js';
 
 const router = Router();
 
@@ -21,6 +34,44 @@ const noteUpdateSchema = z.object({
 });
 
 router.use(requireAuth);
+
+function handleWhatsAppError(res: Response, error: unknown, fallback: string) {
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ success: false, error: 'Validation error', details: error.errors });
+  }
+  if (error instanceof WhatsAppCloudError) {
+    return res.status(error.statusCode).json({ success: false, error: error.code, message: error.message });
+  }
+  return res.status(500).json({ success: false, error: fallback });
+}
+
+router.get('/communication-settings', requireRole('ADMIN', 'MANAGER'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await getCommunicationSettings(req.auth!);
+    res.json({ success: true, data });
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to fetch communication settings' });
+  }
+});
+
+router.patch('/communication-settings', requireRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = communicationSettingsSchema.parse(req.body);
+    const data = await updateCommunicationSettings(req.auth!, payload);
+    res.json({ success: true, data });
+  } catch (error) {
+    handleWhatsAppError(res, error, 'Failed to update communication settings');
+  }
+});
+
+router.post('/whatsapp/test-connection', requireRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await testWhatsAppConnection(req.auth!);
+    res.json({ success: true, data });
+  } catch (error) {
+    handleWhatsAppError(res, error, 'Failed to test WhatsApp connection');
+  }
+});
 
 async function findAuthorizedConversation(req: AuthenticatedRequest, id: string) {
   return prisma.conversation.findFirst({
@@ -224,6 +275,52 @@ router.delete('/notes/:noteId', async (req: AuthenticatedRequest, res: Response)
     res.json({ success: true, message: 'Note deleted' });
   } catch {
     res.status(500).json({ success: false, error: 'Failed to delete conversation note' });
+  }
+});
+
+router.post('/:id/messages', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = whatsappTextSchema.parse(req.body);
+    const data = await sendWhatsAppText(req.auth!, req.params.id, payload.text);
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    handleWhatsAppError(res, error, 'Failed to send WhatsApp message');
+  }
+});
+
+router.post('/:id/messages/template', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = whatsappTemplateSendSchema.parse(req.body);
+    const data = await sendWhatsAppTemplate(req.auth!, req.params.id, payload.templateId, payload.variables);
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    handleWhatsAppError(res, error, 'Failed to send WhatsApp template');
+  }
+});
+
+router.patch('/:id/deal', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = conversationDealLinkSchema.parse(req.body);
+    const data = await linkConversationDeal(req.auth!, req.params.id, payload.dealId);
+    if (!data) return res.status(404).json({ success: false, error: 'Conversation not found' });
+    res.json({ success: true, data });
+  } catch (error) {
+    handleWhatsAppError(res, error, 'Failed to link deal');
+  }
+});
+
+router.post('/:id/resolve', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const conversation = await findAuthorizedConversation(req, req.params.id);
+    if (!conversation) return res.status(404).json({ success: false, error: 'Conversation not found' });
+    const data = await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { status: 'RESOLVED', resolvedAt: new Date(), unreadCount: 0 },
+      include: { contact: true, assignedTo: { select: { id: true, firstName: true, lastName: true, email: true, role: true } } },
+    });
+    res.json({ success: true, data });
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to resolve conversation' });
   }
 });
 

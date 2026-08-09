@@ -22,6 +22,8 @@ export interface Contact {
   id: string;
   phoneNumber: string;
   phoneCountryCode?: string | null;
+  phoneNormalized?: string | null;
+  whatsappOptInStatus?: string | null;
   email?: string;
   firstName: string;
   lastName?: string;
@@ -65,9 +67,16 @@ export interface Message {
   channel?: string;
   messageType: string;
   status: string;
+  providerStatus?: string | null;
+  providerMessageId?: string | null;
+  templateName?: string | null;
+  sentAt?: string | null;
   createdAt: string;
   deliveredAt?: string;
   readAt?: string;
+  failedAt?: string | null;
+  failureCode?: string | null;
+  failureReason?: string | null;
 }
 
 export interface Conversation {
@@ -76,16 +85,23 @@ export interface Conversation {
   contactId: string;
   assignedToId?: string | null;
   assignedTo?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'role'> | null;
+  dealId?: string | null;
+  deal?: Pick<Deal, 'id' | 'title' | 'stage' | 'value' | 'assignedToId'> | null;
   channel?: string;
   status: string;
   messageCount: number;
+  unreadCount?: number;
   lastMessageAt?: string;
+  lastInboundAt?: string | null;
+  serviceWindowEndsAt?: string | null;
+  resolvedAt?: string | null;
   messages?: Message[];
 }
 
 export interface Deal {
   id: string;
   contactId: string;
+  assignedToId?: string | null;
   title: string;
   description?: string;
   value: number;
@@ -97,6 +113,165 @@ export interface Deal {
   createdAt: string;
   updatedAt?: string;
   contact?: Pick<Contact, 'firstName' | 'lastName' | 'phoneNumber'>;
+}
+
+export type ProjectStatus =
+  | 'DRAFT'
+  | 'READY_FOR_KICKOFF'
+  | 'ACTIVE'
+  | 'ON_HOLD'
+  | 'CLIENT_REVIEW'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export interface KickoffReadinessCheck {
+  key: string;
+  label: string;
+  status: 'PASSED' | 'FAILED' | 'WARNING' | 'NOT_CONFIGURED';
+  required: boolean;
+  message: string;
+}
+
+export interface KickoffReadiness {
+  ready: boolean;
+  blockers: string[];
+  warnings: string[];
+  checks: KickoffReadinessCheck[];
+  project?: Project | null;
+}
+
+export interface Project {
+  id: string;
+  companyId: string;
+  dealId: string;
+  contactId: string;
+  name: string;
+  serviceType?: string | null;
+  status: ProjectStatus;
+  ownerId?: string | null;
+  projectManagerId?: string | null;
+  startDate?: string | null;
+  targetDate?: string | null;
+  completedAt?: string | null;
+  brief?: string | null;
+  briefData?: Record<string, unknown> | null;
+  internalNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contact?: Contact;
+  deal?: Pick<Deal, 'id' | 'title' | 'stage'> & { quotations?: Array<Pick<Quotation, 'id' | 'quoteNumber' | 'status'>> };
+  owner?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'> | null;
+  projectManager?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'> | null;
+  members?: Array<{
+    id: string;
+    role: string;
+    user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'role'>;
+  }>;
+  milestones?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    status: string;
+    targetDate?: string | null;
+    completedAt?: string | null;
+    sortOrder: number;
+  }>;
+  deliverables?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    status: string;
+    dueDate?: string | null;
+    completedAt?: string | null;
+    sortOrder: number;
+  }>;
+  requirements?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    status: string;
+    notes?: string | null;
+    completedAt?: string | null;
+  }>;
+  tasks?: Task[];
+  documents?: LeadFlowDocument[];
+  activityLogs?: ActivityLog[];
+  _count?: {
+    tasks: number;
+    milestones: number;
+    deliverables: number;
+    requirements: number;
+  };
+}
+
+export type DocumentType =
+  | 'PROPOSAL'
+  | 'STATEMENT_OF_WORK'
+  | 'SERVICE_AGREEMENT'
+  | 'NDA'
+  | 'MAINTENANCE_AGREEMENT'
+  | 'SAAS_SUBSCRIPTION_AGREEMENT'
+  | 'CUSTOM';
+
+export type DocumentStatus =
+  | 'DRAFT'
+  | 'READY'
+  | 'SENT'
+  | 'VIEWED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'SUPERSEDED'
+  | 'CANCELLED';
+
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  type: DocumentType;
+  description?: string | null;
+  content: string;
+  isSystemTemplate: boolean;
+  isActive: boolean;
+}
+
+export interface DocumentVersion {
+  id: string;
+  documentId: string;
+  versionNumber: number;
+  renderedContent: string;
+  createdAt: string;
+}
+
+export interface LeadFlowDocument {
+  id: string;
+  dealId?: string | null;
+  projectId?: string | null;
+  contactId: string;
+  templateId?: string | null;
+  type: DocumentType;
+  title: string;
+  status: DocumentStatus;
+  currentVersionId?: string | null;
+  expiresAt?: string | null;
+  sentAt?: string | null;
+  viewedAt?: string | null;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contact?: Contact;
+  deal?: Pick<Deal, 'id' | 'title' | 'stage'>;
+  project?: Pick<Project, 'id' | 'name' | 'serviceType' | 'status'>;
+  template?: DocumentTemplate | null;
+  currentVersion?: DocumentVersion | null;
+  versions?: DocumentVersion[];
+  acceptances?: Array<{
+    id: string;
+    acceptedByName: string;
+    acceptedByEmail: string;
+    designation?: string | null;
+    acceptedAt: string;
+  }>;
 }
 
 export type DealOnboardingStatus =
@@ -153,7 +328,39 @@ export interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountAmount?: number;
+  taxableAmount?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  totalAmount?: number;
   total?: number;
+}
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  method: string;
+  status: string;
+  provider?: string | null;
+  providerOrderId?: string | null;
+  providerPaymentId?: string | null;
+  referenceNumber?: string | null;
+  paidAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  receipts?: Receipt[];
+}
+
+export interface Receipt {
+  id: string;
+  invoiceId: string;
+  paymentId: string;
+  receiptNumber: string;
+  amount: number;
+  currency: string;
+  issuedAt: string;
 }
 
 export interface Invoice {
@@ -162,28 +369,42 @@ export interface Invoice {
   quotationId?: string | null;
   contactId: string;
   dealId?: string | null;
+  projectId?: string | null;
   companyId: string;
   status: string;
+  currency?: string;
   issueDate: string;
   dueDate?: string | null;
   paymentTerms?: string | null;
   notes?: string | null;
   terms?: string | null;
   subtotal: number;
+  discountAmount?: number;
+  taxableAmount?: number;
   taxPercent: number;
+  taxMode?: string;
   cgstAmount: number;
   sgstAmount: number;
   igstAmount: number;
   taxVatAmount: number;
   total: number;
+  totalAmount?: number;
   amountPaid: number;
   balanceDue: number;
+  amountDue?: number;
+  finalizedAt?: string | null;
+  sentAt?: string | null;
+  viewedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
   contact?: Pick<Contact, 'firstName' | 'lastName' | 'phoneNumber' | 'phoneCountryCode' | 'email' | 'contactType' | 'companyName' | 'contactPersonName' | 'country' | 'addressLine1' | 'city' | 'state' | 'pincode' | 'postalCode' | 'gstin' | 'taxId'>;
   deal?: Pick<Deal, 'title' | 'stage'> | null;
+  project?: Pick<Project, 'id' | 'name' | 'status'> | null;
   quotation?: Pick<Quotation, 'id' | 'quoteNumber' | 'status'> | null;
   items: InvoiceItem[];
+  payments?: Payment[];
+  receipts?: Receipt[];
+  publicTokens?: Array<{ id: string; expiresAt?: string | null; lastViewedAt?: string | null; createdAt: string }>;
 }
 
 export interface CompanySettings {
@@ -236,6 +457,9 @@ export interface DealWorkspace {
   activities: ActivityLog[];
   notes: Note[];
   onboarding?: ClientOnboardingPanel | null;
+  project?: Project | null;
+  documents?: LeadFlowDocument[];
+  kickoffReadiness?: KickoffReadiness | null;
 }
 
 export interface ClientOnboardingPanel {
@@ -262,7 +486,22 @@ export interface ClientOnboardingPanel {
     id: string;
     status: FormSubmissionStatus;
     submittedAt: string;
+    sections?: Array<{
+      section: string;
+      answers: Array<{
+        key: string;
+        label: string;
+        value: unknown;
+        displayValue: string;
+      }>;
+    }>;
   } | null;
+  reminders?: Array<{
+    id: string;
+    reminderDay: number;
+    channel: string;
+    sentAt: string;
+  }>;
 }
 
 export interface MessageTemplate {

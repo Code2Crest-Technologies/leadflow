@@ -10,6 +10,8 @@ interface CreateActivityLogInput {
   contactId?: string | null;
   userId?: string | null;
   dealId?: string | null;
+  projectId?: string | null;
+  documentId?: string | null;
   conversationId?: string | null;
   metadata?: Prisma.InputJsonValue;
 }
@@ -25,6 +27,8 @@ export async function createActivityLog(
       contactId: input.contactId ?? undefined,
       userId: input.userId ?? undefined,
       dealId: input.dealId ?? undefined,
+      projectId: input.projectId ?? undefined,
+      documentId: input.documentId ?? undefined,
       conversationId: input.conversationId ?? undefined,
       metadata: input.metadata,
     },

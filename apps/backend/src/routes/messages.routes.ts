@@ -31,6 +31,7 @@ router.get('/conversations', async (req: AuthenticatedRequest, res: Response) =>
       },
       include: {
         contact: true,
+        deal: { select: { id: true, title: true, value: true, stage: true, assignedToId: true } },
         assignedTo: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -78,6 +79,7 @@ router.post('/conversations', async (req: AuthenticatedRequest, res: Response) =
       },
       include: {
         contact: true,
+        deal: { select: { id: true, title: true, value: true, stage: true, assignedToId: true } },
         assignedTo: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
       },

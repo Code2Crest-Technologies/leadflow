@@ -13,11 +13,16 @@ import {
 } from '../services/deal.service.js';
 import {
   ClientOnboardingError,
+  createCopyableClientOnboardingLink,
+  getClientOnboardingMetrics,
   markClientOnboardingSent,
   regenerateClientOnboardingLink,
+  sendClientOnboardingEmail,
+  shareClientOnboardingViaWhatsApp,
   startClientOnboarding,
   updateOnboardingReviewStatus,
 } from '../services/clientOnboarding.service.js';
+import { generateClientOnboardingPdf } from '../services/clientOnboardingPdf.service.js';
 
 function handleClientOnboardingError(error: unknown, res: Response) {
   if (error instanceof ClientOnboardingError) {
@@ -132,6 +137,52 @@ export async function startClientOnboardingController(req: AuthenticatedRequest,
 export async function regenerateClientOnboardingController(req: AuthenticatedRequest, res: Response) {
   try {
     res.status(201).json({ success: true, data: await regenerateClientOnboardingLink(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function copyableClientOnboardingLinkController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.status(201).json({ success: true, data: await createCopyableClientOnboardingLink(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function sendClientOnboardingEmailController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ success: true, data: await sendClientOnboardingEmail(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function shareClientOnboardingWhatsAppController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.status(201).json({ success: true, data: await shareClientOnboardingViaWhatsApp(req.auth!, req.params.id) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function getClientOnboardingMetricsController(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ success: true, data: await getClientOnboardingMetrics(req.auth!) });
+  } catch (error) {
+    handleClientOnboardingError(error, res);
+  }
+}
+
+export async function downloadClientOnboardingPdfController(req: AuthenticatedRequest, res: Response) {
+  try {
+    const pdf = await generateClientOnboardingPdf(req.auth!, req.params.id);
+    if (!pdf) {
+      return res.status(404).json({ success: false, error: 'Onboarding submission not found' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="client-onboarding-${req.params.id}.pdf"`);
+    res.send(pdf);
   } catch (error) {
     handleClientOnboardingError(error, res);
   }
